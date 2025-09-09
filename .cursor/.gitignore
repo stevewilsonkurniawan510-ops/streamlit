@@ -12,3 +12,4 @@ rules/*
 !rules/overview.mdc
 !rules/make_commands.mdc
 !rules/new_feature.mdc
+!rules/env_compatibility_check.mdc
