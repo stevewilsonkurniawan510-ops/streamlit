@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Stop hook for Claude Code in Streamlit repository.
+"""Stop hook for Claude Code in Streamlit repository.
 Runs quality checks before allowing Claude to complete tasks.
+Optimized to only check modified files for faster execution.
 """
 
 from __future__ import annotations
@@ -23,18 +23,14 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from pathlib import Path
 from typing import Final
 
 # Constants
-# Total hook timeout is 150s (set in settings.json)
-# TODO: Optimize these checks to only run on changed files to reduce execution time
-# This will be addressed in a follow-up PR
-# We have 4 checks total: python-lint, python-types, frontend-lint, frontend-types
-# Give each command a reasonable timeout, but fast ones get less
+# Total hook timeout is 90s (set in settings.json)
+# Optimized to check only modified files for faster execution
 PYTHON_COMMAND_TIMEOUT: Final = 10  # Python checks are fast
-FRONTEND_COMMAND_TIMEOUT: Final = (
-    70  # Frontend checks are slower (can take 50+ seconds)
-)
+FRONTEND_COMMAND_TIMEOUT: Final = 30  # Reduced timeout for file-specific checks
 SEPARATOR: Final = "=" * 60
 
 # Keywords for filtering relevant error lines
@@ -109,84 +105,159 @@ def format_check_result(
     return f"{check_name} failed (run '{make_command}' for details)"
 
 
-def check_python_quality() -> list[str]:
-    """Run Python linting and type checking.
+def get_modified_files() -> tuple[list[str], list[str]]:
+    """Get lists of modified Python and TypeScript/JavaScript files.
 
-    TODO: Optimize to only check modified files to reduce execution time.
-    This will be addressed in a follow-up PR.
+    Returns
+    -------
+        Tuple of (python_files, frontend_files)
     """
+    # Get modified files compared to develop branch
+    exit_code, stdout, _ = run_command(
+        ["git", "diff", "--name-only", "develop", "HEAD"]
+    )
+
+    if exit_code != 0:
+        # Fallback to checking staged and unstaged changes
+        exit_code, stdout, _ = run_command(["git", "diff", "--name-only", "--cached"])
+        exit_code2, stdout2, _ = run_command(["git", "diff", "--name-only"])
+        stdout = stdout + "\n" + stdout2
+
+    if not stdout.strip():
+        return [], []
+
+    files = stdout.strip().split("\n")
+    python_files = []
+    frontend_files = []
+
+    for file in files:
+        if not file:
+            continue
+        # Check if file exists (might be deleted)
+        if not Path(file).exists():
+            continue
+
+        if file.endswith(".py"):
+            python_files.append(file)
+        elif any(file.endswith(ext) for ext in [".ts", ".tsx", ".js", ".jsx"]):
+            frontend_files.append(file)
+
+    return python_files, frontend_files
+
+
+def check_python_quality() -> list[str]:
+    """Run Python linting and type checking on modified files."""
+    python_files, _ = get_modified_files()
+
+    # Skip if no Python files modified
+    if not python_files:
+        return []
+
     issues = []
 
-    # Python linting (includes formatting check via ruff format --check)
+    # Python linting with ruff (includes formatting check)
+    # Run ruff directly on specific files for faster execution
     exit_code, stdout, stderr = run_command(
-        ["make", "python-lint"], timeout=PYTHON_COMMAND_TIMEOUT
+        ["ruff", "check", *python_files], timeout=PYTHON_COMMAND_TIMEOUT
     )
-    if issue := format_check_result(
-        exit_code,
-        stdout,
-        stderr,
-        "Python linting/formatting",
-        PYTHON_ERROR_KEYWORDS,
-        "make python-lint",
-    ):
-        issues.append(issue)
+    if exit_code != 0:
+        output = (stdout + "\n" + stderr).strip()
+        relevant_lines = filter_relevant_lines(output, PYTHON_ERROR_KEYWORDS)
+        if relevant_lines:
+            issues.append("Python linting issues found:\n" + "\n".join(relevant_lines))
 
-    # Python type checking
+    # Check formatting with ruff format
     exit_code, stdout, stderr = run_command(
-        ["make", "python-types"], timeout=PYTHON_COMMAND_TIMEOUT
+        ["ruff", "format", "--check", *python_files], timeout=PYTHON_COMMAND_TIMEOUT
     )
-    if issue := format_check_result(
-        exit_code,
-        stdout,
-        stderr,
-        "Python type checking",
-        PYTHON_ERROR_KEYWORDS,
-        "make python-types",
-    ):
-        issues.append(issue)
+    if exit_code != 0:
+        output = (stdout + "\n" + stderr).strip()
+        if "would reformat" in output.lower():
+            issues.append(f"Python formatting issues found:\n{output}")
+
+    # Python type checking with mypy on specific files
+    exit_code, stdout, stderr = run_command(
+        ["mypy", *python_files], timeout=PYTHON_COMMAND_TIMEOUT
+    )
+    if exit_code != 0:
+        output = (stdout + "\n" + stderr).strip()
+        relevant_lines = filter_relevant_lines(output, PYTHON_ERROR_KEYWORDS)
+        if relevant_lines:
+            issues.append("Python type checking failed:\n" + "\n".join(relevant_lines))
 
     return issues
 
 
 def check_frontend_quality() -> list[str]:
-    """Run frontend linting and type checking.
+    """Run frontend linting and type checking on modified files."""
+    _, frontend_files = get_modified_files()
 
-    TODO: Optimize to only check modified files to reduce execution time.
-    This will be addressed in a follow-up PR.
-    """
+    # Skip if no frontend files modified
+    if not frontend_files:
+        return []
+
     issues = []
 
-    # Check each frontend command
-    commands = [
-        ("frontend-lint", "Frontend linting/formatting"),
-        ("frontend-types", "Frontend type checking"),
+    # Check if node_modules exists
+    if not Path("frontend/node_modules").exists():
+        print(  # noqa: T201
+            "⚠️  Skipping frontend checks - node_modules not installed",
+            file=sys.stderr,
+        )
+        return []
+
+    # Run ESLint on specific files
+    # Convert paths to be relative to frontend directory
+    frontend_relative_files = [
+        file[9:] for file in frontend_files if file.startswith("frontend/")
     ]
 
-    for make_target, check_name in commands:
+    if frontend_relative_files:
+        # ESLint for linting
         exit_code, stdout, stderr = run_command(
-            ["make", make_target], timeout=FRONTEND_COMMAND_TIMEOUT
+            ["yarn", "eslint", *frontend_relative_files],
+            timeout=FRONTEND_COMMAND_TIMEOUT,
+            cwd="frontend",
         )
-
         if exit_code != 0:
             output = (stdout + "\n" + stderr).strip()
-
-            # Skip if node_modules is missing
-            if any(keyword in output.lower() for keyword in NODE_MODULES_KEYWORDS):
-                print(  # noqa: T201
-                    "⚠️  Skipping frontend checks - node_modules not installed",
-                    file=sys.stderr,
+            relevant_lines = filter_relevant_lines(output, FRONTEND_ERROR_KEYWORDS)
+            if relevant_lines:
+                issues.append(
+                    "Frontend linting issues found:\n" + "\n".join(relevant_lines)
                 )
-                return []
 
-            if issue := format_check_result(
-                exit_code,
-                stdout,
-                stderr,
-                check_name,
-                FRONTEND_ERROR_KEYWORDS,
-                f"make {make_target}",
-            ):
-                issues.append(issue)
+        # Prettier for formatting check
+        exit_code, stdout, stderr = run_command(
+            ["yarn", "prettier", "--check", *frontend_relative_files],
+            timeout=FRONTEND_COMMAND_TIMEOUT,
+            cwd="frontend",
+        )
+        if exit_code != 0:
+            output = (stdout + "\n" + stderr).strip()
+            if "would" in output.lower() or "formatting" in output.lower():
+                issues.append(f"Frontend formatting issues found:\n{output}")
+
+        # TypeScript type checking
+        # For type checking, we still need to run the full check as tsc doesn't support file-specific checks well
+        # But we can use a shorter timeout since we know there are changes
+        exit_code, stdout, stderr = run_command(
+            ["yarn", "type-check"], timeout=FRONTEND_COMMAND_TIMEOUT, cwd="frontend"
+        )
+        if exit_code != 0:
+            output = (stdout + "\n" + stderr).strip()
+            # Filter to only show errors related to our modified files
+            relevant_lines = []
+            for line in output.split("\n"):
+                if (
+                    any(f in line for f in frontend_relative_files)
+                    or "error" in line.lower()
+                ):
+                    relevant_lines.append(line)
+            if relevant_lines:
+                issues.append(
+                    "Frontend type checking failed:\n" + "\n".join(relevant_lines[:20])
+                )  # Limit output
 
     return issues
 
@@ -212,7 +283,7 @@ def print_results(issues: list[str]) -> None:
         print("✅ All quality checks passed!", file=sys.stderr)  # noqa: T201
 
 
-def main():
+def main() -> None:
     """Main entry point for the stop hook."""
     # Check if stop_hook_active is set to prevent infinite loops
     stdin_input = sys.stdin.read() if not sys.stdin.isatty() else "{}"
@@ -226,10 +297,28 @@ def main():
         # Already in a stop hook, allow normal stoppage
         sys.exit(0)
 
-    # Run all quality checks
+    # Get modified files first to determine what to check
+    python_files, frontend_files = get_modified_files()
+
+    if not python_files and not frontend_files:
+        print(  # noqa: T201
+            "✅ No modified Python or TypeScript/JavaScript files to check!",
+            file=sys.stderr,
+        )
+        sys.exit(0)
+
+    # Print what we're checking
+    print(  # noqa: T201
+        f"🔍 Checking {len(python_files)} Python and {len(frontend_files)} frontend files...",
+        file=sys.stderr,
+    )
+
+    # Run quality checks only on modified files
     all_issues = []
-    all_issues.extend(check_python_quality())
-    all_issues.extend(check_frontend_quality())
+    if python_files:
+        all_issues.extend(check_python_quality())
+    if frontend_files:
+        all_issues.extend(check_frontend_quality())
 
     # Print results and exit with appropriate code
     print_results(all_issues)
