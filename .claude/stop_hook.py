@@ -222,9 +222,9 @@ def check_frontend_quality() -> list[str]:
     ]
 
     if frontend_relative_files:
-        # ESLint for linting
+        # ESLint for linting - use npx to run the binary directly
         exit_code, stdout, stderr = run_command(
-            ["yarn", "eslint", *frontend_relative_files],
+            ["npx", "eslint", "--max-warnings", "0", *frontend_relative_files],
             timeout=FRONTEND_COMMAND_TIMEOUT,
             cwd="frontend",
         )
@@ -236,9 +236,9 @@ def check_frontend_quality() -> list[str]:
                     "Frontend linting issues found:\n" + "\n".join(relevant_lines)
                 )
 
-        # Prettier for formatting check
+        # Prettier for formatting check - use npx to run the binary directly
         exit_code, stdout, stderr = run_command(
-            ["yarn", "prettier", "--check", *frontend_relative_files],
+            ["npx", "prettier", "--check", *frontend_relative_files],
             timeout=FRONTEND_COMMAND_TIMEOUT,
             cwd="frontend",
         )
@@ -251,7 +251,9 @@ def check_frontend_quality() -> list[str]:
         # For type checking, we still need to run the full check as tsc doesn't support file-specific checks well
         # But we can use a shorter timeout since we know there are changes
         exit_code, stdout, stderr = run_command(
-            ["yarn", "type-check"], timeout=FRONTEND_COMMAND_TIMEOUT, cwd="frontend"
+            ["yarn", "workspaces", "foreach", "--all", "run", "typecheck"],
+            timeout=FRONTEND_COMMAND_TIMEOUT,
+            cwd="frontend",
         )
         if exit_code != 0:
             output = (stdout + "\n" + stderr).strip()
