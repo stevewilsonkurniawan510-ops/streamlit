@@ -32,6 +32,7 @@ from typing import Final
 PYTHON_COMMAND_TIMEOUT: Final = 10  # Python checks are fast
 FRONTEND_COMMAND_TIMEOUT: Final = 30  # Reduced timeout for file-specific checks
 SEPARATOR: Final = "=" * 60
+MAX_ERROR_LINES: Final = 20  # Maximum number of error lines to display
 
 # Keywords for filtering relevant error lines
 PYTHON_ERROR_KEYWORDS: Final = ["error", "would reformat", "failed", "***", ".py:"]
@@ -121,6 +122,12 @@ def get_modified_files() -> tuple[list[str], list[str]]:
         # Fallback to checking staged and unstaged changes
         exit_code, stdout, _ = run_command(["git", "diff", "--name-only", "--cached"])
         exit_code2, stdout2, _ = run_command(["git", "diff", "--name-only"])
+        if exit_code != 0 or exit_code2 != 0:
+            print(  # noqa: T201
+                "Error: Failed to get modified files from git (both staged and unstaged).",
+                file=sys.stderr,
+            )
+            return [], []
         stdout = stdout + "\n" + stdout2
 
     if not stdout.strip():
@@ -209,7 +216,9 @@ def check_frontend_quality() -> list[str]:
     # Run ESLint on specific files
     # Convert paths to be relative to frontend directory
     frontend_relative_files = [
-        file[9:] for file in frontend_files if file.startswith("frontend/")
+        file.removeprefix("frontend/")
+        for file in frontend_files
+        if file.startswith("frontend/")
     ]
 
     if frontend_relative_files:
@@ -249,14 +258,27 @@ def check_frontend_quality() -> list[str]:
             # Filter to only show errors related to our modified files
             relevant_lines = []
             for line in output.split("\n"):
-                if (
-                    any(f in line for f in frontend_relative_files)
-                    or "error" in line.lower()
-                ):
+                # Check if line contains any of our modified files as exact path components
+                line_lower = line.lower()
+                is_relevant = "error" in line_lower
+                if not is_relevant:
+                    for file in frontend_relative_files:
+                        # Use more precise matching to avoid false positives
+                        # Check for file path with separators or at line boundaries
+                        if (
+                            f"/{file}" in line
+                            or line.startswith(file)
+                            or f" {file}" in line
+                            or f"{file}:" in line
+                        ):
+                            is_relevant = True
+                            break
+                if is_relevant:
                     relevant_lines.append(line)
             if relevant_lines:
                 issues.append(
-                    "Frontend type checking failed:\n" + "\n".join(relevant_lines[:20])
+                    "Frontend type checking failed:\n"
+                    + "\n".join(relevant_lines[:MAX_ERROR_LINES])
                 )  # Limit output
 
     return issues
