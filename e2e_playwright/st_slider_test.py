@@ -286,3 +286,38 @@ def test_slider_tick_bar_visibility(app: Page, assert_snapshot: ImageCompareFunc
     expect(slider.get_by_test_id("stSliderTickBar")).to_be_visible()
 
     assert_snapshot(slider, name="st_slider-tick_bar_visibility")
+
+
+def test_dynamic_slider_props(app: Page, assert_snapshot: ImageCompareFunction):
+    """Test that the slider can be updated dynamically while keeping the state."""
+    dynamic_slider = get_element_by_key(app, "dynamic_slider_with_key")
+    expect(dynamic_slider).to_be_visible()
+
+    expect(dynamic_slider).to_contain_text("Initial dynamic slider")
+    assert_snapshot(dynamic_slider, name="st_slider-dynamic_initial")
+
+    # Check that the help tooltip is correct:
+    expect_help_tooltip(app, dynamic_slider, "initial help")
+
+    # Click to change value
+    dynamic_slider.click()
+    wait_for_app_run(app)
+
+    expect_prefixed_markdown(app, "Initial slider value:", "50")
+
+    # Click the toggle to update the slider props
+    from e2e_playwright.shared.app_utils import click_toggle
+
+    click_toggle(app, "Update slider props")
+
+    # new slider is visible:
+    expect(dynamic_slider).to_contain_text("Updated dynamic slider")
+
+    # Ensure the previously entered value remains visible
+    expect_prefixed_markdown(app, "Updated slider value:", "50")
+
+    dynamic_slider.scroll_into_view_if_needed()
+    assert_snapshot(dynamic_slider, name="st_slider-dynamic_updated")
+
+    # Check that the help tooltip is correct:
+    expect_help_tooltip(app, dynamic_slider, "updated help")

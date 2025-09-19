@@ -411,3 +411,72 @@ def test_id_stability():
     s2 = at.slider[0]
 
     assert s1.id == s2.id
+
+
+class SliderStableIdTest(DeltaGeneratorTestCase):
+    def test_stable_id_with_key(self):
+        """Test that the widget ID is stable when a stable key is provided, unless whitelisted kwargs change."""
+        with patch(
+            "streamlit.elements.lib.utils._register_element_id",
+            return_value=MagicMock(),
+        ):
+            st.slider(
+                label="Label 1",
+                key="slider_key",
+                min_value=0,
+                max_value=10,
+                value=5,
+                step=1,
+                format="%d",
+            )
+            c1 = self.get_delta_from_queue().new_element.slider
+            id1 = c1.id
+
+            st.slider(
+                label="Label 2",
+                key="slider_key",
+                min_value=0,
+                max_value=10,
+                value=7,
+                step=1,
+                format="%d",
+            )
+            c2 = self.get_delta_from_queue().new_element.slider
+            id2 = c2.id
+            assert id1 == id2
+
+    @parameterized.expand(
+        [
+            ("min_value", 0, 1),
+            ("max_value", 10, 20),
+            ("step", 1, 2),
+            ("format", "%d", "%0.2f"),
+        ]
+    )
+    def test_whitelisted_stable_key_kwargs(
+        self, kwarg_name: str, value1: object, value2: object
+    ):
+        """Changing whitelisted kwargs should change the ID even when a key is provided."""
+        with patch(
+            "streamlit.elements.lib.utils._register_element_id",
+            return_value=MagicMock(),
+        ):
+            base_kwargs = {
+                "label": "Label",
+                "key": "slider_key2",
+                "min_value": 0,
+                "max_value": 10,
+                "value": 5,
+                "step": 1,
+                "format": "%d",
+            }
+            base_kwargs[kwarg_name] = value1
+            st.slider(**base_kwargs)
+            c1 = self.get_delta_from_queue().new_element.slider
+            id1 = c1.id
+
+            base_kwargs[kwarg_name] = value2
+            st.slider(**base_kwargs)
+            c2 = self.get_delta_from_queue().new_element.slider
+            id2 = c2.id
+            assert id1 != id2

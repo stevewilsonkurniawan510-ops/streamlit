@@ -272,6 +272,55 @@ class SliderTest(DeltaGeneratorTestCase):
         assert el.type == "CachedWidgetWarning"
         assert el.is_warning
 
+    @parameterized.expand(
+        [
+            (
+                {"options": ["red", "green", "blue"], "value": "green"},
+                {"options": ["red", "green", "blue"], "value": "red"},
+            ),
+        ]
+    )
+    def test_stable_id_with_key(self, args1: dict[str, Any], args2: dict[str, Any]):
+        """Test that the widget ID is stable when a stable key is provided, unless whitelisted kwargs change."""
+        with patch(
+            "streamlit.elements.lib.utils._register_element_id",
+            return_value=MagicMock(),
+        ):
+            st.select_slider(label="Label 1", key="select_slider_key", **args1)
+            c1 = self.get_delta_from_queue().new_element.slider
+            id1 = c1.id
+
+            st.select_slider(label="Label 2", key="select_slider_key", **args2)
+            c2 = self.get_delta_from_queue().new_element.slider
+            id2 = c2.id
+            assert id1 == id2
+
+    @parameterized.expand(
+        [
+            ("options", ["a", "b"], ["a", "b", "c"]),
+        ]
+    )
+    def test_whitelisted_stable_key_kwargs(
+        self, kwarg_name: str, value1: object, value2: object
+    ):
+        """Changing whitelisted kwargs should change the ID even when a key is provided."""
+        with patch(
+            "streamlit.elements.lib.utils._register_element_id",
+            return_value=MagicMock(),
+        ):
+            st.select_slider(
+                label="Label 1", key="select_slider_key2", **{kwarg_name: value1}
+            )
+            c1 = self.get_delta_from_queue().new_element.slider
+            id1 = c1.id
+
+            st.select_slider(
+                label="Label 2", key="select_slider_key2", **{kwarg_name: value2}
+            )
+            c2 = self.get_delta_from_queue().new_element.slider
+            id2 = c2.id
+            assert id1 != id2
+
 
 def test_select_slider_enum_coercion():
     """Test E2E Enum Coercion on a select_slider."""

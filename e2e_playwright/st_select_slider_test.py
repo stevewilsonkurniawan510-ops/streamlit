@@ -20,6 +20,7 @@ from e2e_playwright.conftest import ImageCompareFunction, wait_for_app_run
 from e2e_playwright.shared.app_utils import (
     check_top_level_class,
     click_form_button,
+    click_toggle,
     expect_help_tooltip,
     expect_prefixed_markdown,
     get_element_by_key,
@@ -27,7 +28,7 @@ from e2e_playwright.shared.app_utils import (
     get_slider,
 )
 
-NUM_SELECT_SLIDERS = 14
+NUM_SELECT_SLIDERS = 15
 
 
 def test_select_slider_rendering(
@@ -150,6 +151,39 @@ def test_select_slider_works_in_forms(app: Page):
 
 def test_select_slider_works_with_fragments(app: Page):
     expect_prefixed_markdown(app, "Runs:", "1")
+
+
+def test_dynamic_select_slider_props(app: Page, assert_snapshot: ImageCompareFunction):
+    """Test that the select slider can be updated dynamically while keeping the state."""
+    dynamic_select_slider = get_element_by_key(app, "dynamic_select_slider_with_key")
+    expect(dynamic_select_slider).to_be_visible()
+
+    expect(dynamic_select_slider).to_contain_text("Initial dynamic select slider")
+    assert_snapshot(dynamic_select_slider, name="st_select_slider-dynamic_initial")
+
+    # Check that the help tooltip is correct:
+    expect_help_tooltip(app, dynamic_select_slider, "initial help")
+
+    # Type something and submit via clicking somewhere on the slider
+    dynamic_select_slider.locator('[role="slider"]').first.click()
+    wait_for_app_run(app)
+
+    expect_prefixed_markdown(app, "Initial select slider value:", "green")
+
+    # Click the toggle to update the select slider props
+    click_toggle(app, "Update select slider props")
+
+    # new select slider is visible:
+    expect(dynamic_select_slider).to_contain_text("Updated dynamic select slider")
+
+    # Ensure the previously entered value remains visible
+    expect_prefixed_markdown(app, "Updated select slider value:", "green")
+
+    dynamic_select_slider.scroll_into_view_if_needed()
+    assert_snapshot(dynamic_select_slider, name="st_select_slider-dynamic_updated")
+
+    # Check that the help tooltip is correct:
+    expect_help_tooltip(app, dynamic_select_slider, "updated help")
     expect_prefixed_markdown(app, "select_slider-in-fragment selection:", "1")
     slider = get_slider(app, "Label 11 (fragment)")
     # click in middle
