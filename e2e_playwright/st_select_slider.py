@@ -174,7 +174,7 @@ if st.toggle("Update select slider props"):
 else:
     dyn_val = st.select_slider(
         "Initial dynamic select slider",
-        value="green",
+        value="orange",
         width="stretch",
         help="initial help",
         key="dynamic_select_slider_with_key",
