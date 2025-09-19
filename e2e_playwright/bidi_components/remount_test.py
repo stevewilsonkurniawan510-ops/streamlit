@@ -31,6 +31,10 @@ def test_state_persists_across_unmount_and_remount(app: Page) -> None:
     app.get_by_label("Text").fill("world")
     wait_for_app_run(app)
 
+    # Assert DOM reflects the changes
+    expect(app.get_by_label("Range")).to_have_value("25")
+    expect(app.get_by_label("Text")).to_have_value("world")
+
     expect(
         app.get_by_text(
             "session_state: {'value': {'range': '25', 'text': 'world'}}",
@@ -42,7 +46,9 @@ def test_state_persists_across_unmount_and_remount(app: Page) -> None:
     # Trigger unmount/remount via standard pattern
     click_button(app, "Create some elements to unmount component")
 
-    # Verify that session_state persisted across remount
+    # Verify that DOM values and session_state persisted across remount
+    expect(app.get_by_label("Range")).to_have_value("25")
+    expect(app.get_by_label("Text")).to_have_value("world")
     expect(
         app.get_by_text("session_state: {'value': {'range': '25', 'text': 'world'}}")
     ).to_be_visible()
@@ -52,6 +58,9 @@ def test_state_persists_across_unmount_and_remount(app: Page) -> None:
     app.get_by_label("Text").fill("!")
     wait_for_app_run(app)
 
+    # Assert DOM and session_state after second change
+    expect(app.get_by_label("Range")).to_have_value("30")
+    expect(app.get_by_label("Text")).to_have_value("!")
     expect(
         app.get_by_text(
             "session_state: {'value': {'range': '30', 'text': '!'}}",

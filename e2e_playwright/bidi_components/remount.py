@@ -27,10 +27,18 @@ st.header("Bidi Component remount behavior")
 # A simple component that updates state on input, so we can see persistence across remounts.
 JS_CODE = """
 export default function(component) {
-  const { parentElement, setStateValue } = component
+  const { parentElement, setStateValue, data } = component
 
   const rangeInput = parentElement.querySelector('#range')
   const textInput = parentElement.querySelector('#text')
+
+  // Initialize input values from data if provided
+  if (data && typeof data.initialRange !== 'undefined') {
+    rangeInput.value = String(data.initialRange)
+  }
+  if (data && typeof data.initialText !== 'undefined') {
+    textInput.value = String(data.initialText)
+  }
 
   const handleRangeChange = (event) => {
     setStateValue('range', event.target.value)
@@ -72,6 +80,7 @@ def my_component(
     on_range_change: WidgetCallback | None = None,
     on_text_change: WidgetCallback | None = None,
     default: dict[str, Any] | None = None,
+    data: Any | None = None,
 ) -> BidiComponentResult:
     return _my_component(
         isolate_styles=True,
@@ -79,6 +88,7 @@ def my_component(
         on_range_change=on_range_change,
         on_text_change=on_text_change,
         default=default,
+        data=data,
     )
 
 
@@ -99,20 +109,34 @@ def handle_text_change() -> None:
 # Standard unmount/remount pattern used in other tests
 if st.button("Create some elements to unmount component"):
     for _ in range(3):
-        # The sleep here is needed, because it won't unmount the component if this is too fast.
+        # The sleep here is needed, because it won't unmount the component if
+        # this is too fast.
         time.sleep(1)
         st.write("Another element")
+
+# Resolve initial values: prefer session_state if available, else fall back to default values
+component_key = "remount_component_1"
+state_value = st.session_state.get(component_key)
+initial_defaults: dict[str, Any] = {"range": 10, "text": "hello"}
+if isinstance(state_value, dict):
+    value_dict = state_value.get("value")
+    if isinstance(value_dict, dict):
+        initial_defaults.update(value_dict)
 
 # Render the component after the unmount trigger block
 st.write("Above the component")
 result = my_component(
-    key="remount_component_1",
+    key=component_key,
     on_range_change=handle_range_change,
     on_text_change=handle_text_change,
     default={"range": 10, "text": "hello"},
+    data={
+        "initialRange": initial_defaults.get("range", 10),
+        "initialText": initial_defaults.get("text", "hello"),
+    },
 )
 st.write(f"Result: {result}")
-st.text(f"session_state: {st.session_state.get('remount_component_1')}")
+st.text(f"session_state: {st.session_state.get(component_key)}")
 st.write("Below the component")
 
 st.write(f"Range change count: {st.session_state.range_change_count}")
