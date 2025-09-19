@@ -154,8 +154,6 @@ if "runs" not in st.session_state:
 st.session_state.runs += 1
 st.write("Runs:", st.session_state.runs)
 
-st.markdown("Dynamic select slider:")
-
 if st.toggle("Update select slider props"):
     dyn_val = st.select_slider(
         "Updated dynamic select slider",

@@ -151,6 +151,13 @@ def test_select_slider_works_in_forms(app: Page):
 
 def test_select_slider_works_with_fragments(app: Page):
     expect_prefixed_markdown(app, "Runs:", "1")
+    expect_prefixed_markdown(app, "select_slider-in-fragment selection:", "1")
+    slider = get_slider(app, "Label 11 (fragment)")
+    # click in middle
+    slider.click()
+    wait_for_app_run(app)
+    expect_prefixed_markdown(app, "select_slider-in-fragment selection:", "3")
+    expect_prefixed_markdown(app, "Runs:", "1")
 
 
 def test_dynamic_select_slider_props(app: Page, assert_snapshot: ImageCompareFunction):
@@ -184,13 +191,6 @@ def test_dynamic_select_slider_props(app: Page, assert_snapshot: ImageCompareFun
 
     # Check that the help tooltip is correct:
     expect_help_tooltip(app, dynamic_select_slider, "updated help")
-    expect_prefixed_markdown(app, "select_slider-in-fragment selection:", "1")
-    slider = get_slider(app, "Label 11 (fragment)")
-    # click in middle
-    slider.click()
-    wait_for_app_run(app)
-    expect_prefixed_markdown(app, "select_slider-in-fragment selection:", "3")
-    expect_prefixed_markdown(app, "Runs:", "1")
 
 
 def test_no_rerun_on_drag(app: Page):

@@ -423,11 +423,19 @@ class SliderStableIdTest(DeltaGeneratorTestCase):
             st.slider(
                 label="Label 1",
                 key="slider_key",
+                value=5,
+                format="%0.2f",
+                help="help 1",
+                width="stretch",
+                on_change=lambda: None,
+                args=("arg1", "arg2"),
+                kwargs={"kwarg1": "kwarg1"},
+                label_visibility="visible",
+                disabled=False,
+                # Whitelisted kwargs
                 min_value=0,
                 max_value=10,
-                value=5,
                 step=1,
-                format="%0.2f",
             )
             c1 = self.get_delta_from_queue().new_element.slider
             id1 = c1.id
@@ -435,11 +443,19 @@ class SliderStableIdTest(DeltaGeneratorTestCase):
             st.slider(
                 label="Label 2",
                 key="slider_key",
+                value=7,
+                format="%d",
+                help="help 2",
+                width=300,
+                on_change=lambda: None,
+                args=("arg_1", "arg_2"),
+                kwargs={"kwarg_1": "kwarg_1"},
+                label_visibility="hidden",
+                disabled=True,
+                # Whitelisted kwargs
                 min_value=0,
                 max_value=10,
-                value=7,
                 step=1,
-                format="%d",
             )
             c2 = self.get_delta_from_queue().new_element.slider
             id2 = c2.id
