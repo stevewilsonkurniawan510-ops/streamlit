@@ -12,4 +12,9 @@ rules/*
 !rules/overview.mdc
 !rules/make_commands.mdc
 !rules/new_feature.mdc
-!rules/env_compatibility_check.mdc
+
+# Ignore all commands
+commands/*
+# Only track certain commands so that we don't track a user's local commands
+# You can add more commands to this list as needed!
+!commands/env_compatibility_check.md
