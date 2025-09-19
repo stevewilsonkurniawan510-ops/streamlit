@@ -427,7 +427,7 @@ class SliderStableIdTest(DeltaGeneratorTestCase):
                 max_value=10,
                 value=5,
                 step=1,
-                format="%d",
+                format="%0.2f",
             )
             c1 = self.get_delta_from_queue().new_element.slider
             id1 = c1.id
@@ -450,7 +450,6 @@ class SliderStableIdTest(DeltaGeneratorTestCase):
             ("min_value", 0, 1),
             ("max_value", 10, 20),
             ("step", 1, 2),
-            ("format", "%d", "%0.2f"),
         ]
     )
     def test_whitelisted_stable_key_kwargs(
@@ -468,7 +467,6 @@ class SliderStableIdTest(DeltaGeneratorTestCase):
                 "max_value": 10,
                 "value": 5,
                 "step": 1,
-                "format": "%d",
             }
             base_kwargs[kwarg_name] = value1
             st.slider(**base_kwargs)

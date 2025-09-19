@@ -683,12 +683,7 @@ class SliderMixin:
             # Treat the provided key as the main identity; only include
             # changes to the value-shaping arguments in the identity
             # computation as those can invalidate the current value.
-            key_as_main_identity={
-                "min_value",
-                "max_value",
-                "step",
-                "format",
-            },
+            key_as_main_identity={"min_value", "max_value", "step"},
             dg=self.dg,
             label=label,
             min_value=min_value,
