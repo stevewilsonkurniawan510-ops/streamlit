@@ -24,6 +24,7 @@ from e2e_playwright.conftest import (
 from e2e_playwright.shared.app_utils import (
     check_top_level_class,
     click_form_button,
+    click_toggle,
     expect_help_tooltip,
     expect_markdown,
     expect_prefixed_markdown,
@@ -306,8 +307,6 @@ def test_dynamic_slider_props(app: Page, assert_snapshot: ImageCompareFunction):
     expect_prefixed_markdown(app, "Initial slider value:", "50")
 
     # Click the toggle to update the slider props
-    from e2e_playwright.shared.app_utils import click_toggle
-
     click_toggle(app, "Update slider props")
 
     # new slider is visible:
