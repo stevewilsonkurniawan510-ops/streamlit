@@ -297,6 +297,8 @@ def test_dynamic_slider_props(app: Page, assert_snapshot: ImageCompareFunction):
     expect(dynamic_slider).to_be_visible()
 
     expect(dynamic_slider).to_contain_text("Initial dynamic slider")
+    expect_prefixed_markdown(app, "Initial slider value:", "25")
+
     assert_snapshot(dynamic_slider, name="st_slider-dynamic_initial")
 
     # Check that the help tooltip is correct:
@@ -322,3 +324,10 @@ def test_dynamic_slider_props(app: Page, assert_snapshot: ImageCompareFunction):
 
     # Check that the help tooltip is correct:
     expect_help_tooltip(app, dynamic_slider, "updated help")
+
+    # Click in the middle and move slider once to right
+    dynamic_slider.click()
+    dynamic_slider.press("ArrowRight")
+    wait_for_app_run(app)
+
+    expect_prefixed_markdown(app, "Updated slider value:", "51")

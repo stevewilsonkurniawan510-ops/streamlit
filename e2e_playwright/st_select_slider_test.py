@@ -166,16 +166,18 @@ def test_dynamic_select_slider_props(app: Page, assert_snapshot: ImageCompareFun
     expect(dynamic_select_slider).to_be_visible()
 
     expect(dynamic_select_slider).to_contain_text("Initial dynamic select slider")
+    expect_prefixed_markdown(app, "Initial select slider value:", "orange")
+
     assert_snapshot(dynamic_select_slider, name="st_select_slider-dynamic_initial")
 
     # Check that the help tooltip is correct:
     expect_help_tooltip(app, dynamic_select_slider, "initial help")
 
-    # Type something and submit via clicking somewhere on the slider
-    dynamic_select_slider.locator('[role="slider"]').first.click()
+    # Click in the middle of the slider
+    dynamic_select_slider.click()
     wait_for_app_run(app)
 
-    expect_prefixed_markdown(app, "Initial select slider value:", "green")
+    expect_prefixed_markdown(app, "Initial select slider value:", "yellow")
 
     # Click the toggle to update the select slider props
     click_toggle(app, "Update select slider props")
@@ -184,13 +186,20 @@ def test_dynamic_select_slider_props(app: Page, assert_snapshot: ImageCompareFun
     expect(dynamic_select_slider).to_contain_text("Updated dynamic select slider")
 
     # Ensure the previously entered value remains visible
-    expect_prefixed_markdown(app, "Updated select slider value:", "green")
+    expect_prefixed_markdown(app, "Updated select slider value:", "yellow")
 
     dynamic_select_slider.scroll_into_view_if_needed()
     assert_snapshot(dynamic_select_slider, name="st_select_slider-dynamic_updated")
 
     # Check that the help tooltip is correct:
     expect_help_tooltip(app, dynamic_select_slider, "updated help")
+
+    # Click in the middle and move slider once to right
+    dynamic_select_slider.click()
+    dynamic_select_slider.press("ArrowRight")
+    wait_for_app_run(app)
+
+    expect_prefixed_markdown(app, "Updated select slider value:", "green")
 
 
 def test_no_rerun_on_drag(app: Page):
