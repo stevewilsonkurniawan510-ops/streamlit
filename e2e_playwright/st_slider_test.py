@@ -34,10 +34,12 @@ from e2e_playwright.shared.app_utils import (
     reset_hovering,
 )
 
+NUM_SLIDER_WIDGETS = 25
+
 
 def test_slider_rendering(themed_app: Page, assert_snapshot: ImageCompareFunction):
     st_sliders = themed_app.get_by_test_id("stSlider")
-    expect(st_sliders).to_have_count(24)
+    expect(st_sliders).to_have_count(NUM_SLIDER_WIDGETS)
 
     assert_snapshot(
         get_slider(themed_app, "Label 1"), name="st_slider-regular_with_format"
