@@ -17,7 +17,10 @@
 import { describe, expect, it } from "vitest"
 
 describe("@streamlit/component-v2-lib", () => {
-  it("should work", () => {
+  it("passes", () => {
+    // Note: As of right now `@streamlit/component-v2-lib` only exports types.
+    // Therefore, this is intentionally a placeholder test.
+    // If/when we add more functionality, we will add tests here.
     expect(true).toBe(true)
   })
 })
