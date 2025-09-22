@@ -38,7 +38,7 @@ export const BidiComponentContextProvider: FC<
   PropsWithChildren<BidiComponentContextProviderProps>
 > = memo(({ element, children, widgetMgr, fragmentId }) => {
   const {
-    arrow,
+    arrowData,
     bytes,
     componentName,
     cssContent,
@@ -68,8 +68,8 @@ export const BidiComponentContextProvider: FC<
     switch (data) {
       case "json":
         return json ? JSON.parse(json) : null
-      case "arrow":
-        return arrow?.data || null
+      case "arrowData":
+        return arrowData?.data || null
       case "bytes":
         return bytes || null
       // TODO: Fix investigate this:
@@ -105,7 +105,7 @@ export const BidiComponentContextProvider: FC<
     }
 
     return undefined
-  }, [data, json, arrow, bytes, mixed])
+  }, [data, json, arrowData, bytes, mixed])
 
   const emotionTheme = useEmotionTheme()
   const theme = useMemo(() => {

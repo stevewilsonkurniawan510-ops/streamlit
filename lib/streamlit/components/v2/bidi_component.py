@@ -36,7 +36,7 @@ from streamlit.elements.lib.layout_utils import (
 from streamlit.elements.lib.policies import check_cache_replay_rules
 from streamlit.elements.lib.utils import compute_and_register_element_id, to_key
 from streamlit.errors import StreamlitAPIException
-from streamlit.proto.Arrow_pb2 import Arrow as ArrowProto
+from streamlit.proto.ArrowData_pb2 import ArrowData as ArrowDataProto
 from streamlit.proto.BidiComponent_pb2 import BidiComponent as BidiComponentProto
 from streamlit.proto.BidiComponent_pb2 import MixedData as MixedDataProto
 from streamlit.runtime.metrics_util import gather_metrics
@@ -145,9 +145,7 @@ def _serialize_mixed_data(data: Any, bidi_component_proto: BidiComponentProto) -
 
         # Add Arrow blobs to the protobuf
         for ref_id, arrow_bytes in arrow_blobs.items():
-            arrow_proto = ArrowProto()
-            arrow_proto.data = arrow_bytes
-            mixed_proto.arrow_blobs[ref_id].CopyFrom(arrow_proto)
+            mixed_proto.arrow_blobs[ref_id].data = arrow_bytes
 
         bidi_component_proto.mixed.CopyFrom(mixed_proto)
     else:
@@ -518,10 +516,10 @@ class BidiComponentMixin:
                     if data_format != DataFormat.UNKNOWN:
                         arrow_bytes = convert_anything_to_arrow_bytes(data)
 
-                        arrow_proto = ArrowProto()
-                        arrow_proto.data = arrow_bytes
+                        arrow_data_proto = ArrowDataProto()
+                        arrow_data_proto.data = arrow_bytes
 
-                        bidi_component_proto.arrow.CopyFrom(arrow_proto)
+                        bidi_component_proto.arrow_data.CopyFrom(arrow_data_proto)
                     else:
                         # Fallback to JSON.
                         bidi_component_proto.json = json.dumps(data)

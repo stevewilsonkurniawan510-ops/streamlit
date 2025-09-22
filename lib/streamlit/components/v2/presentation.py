@@ -90,7 +90,8 @@ def make_bidi_component_presenter(aggregator_id: str) -> WidgetValuePresenter:
                         if isinstance(ev, str):
                             event_to_val[ev] = payload.get("value")
 
-                inner: dict[str, object] = dict(base_value["value"])  # shallow copy
+                wrapped: _WrappedValue = base_value
+                inner: dict[str, object] = dict(wrapped["value"])  # shallow copy
                 inner.update(event_to_val)
                 return {"value": inner}
             except Exception:

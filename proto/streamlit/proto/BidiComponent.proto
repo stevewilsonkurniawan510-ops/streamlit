@@ -19,7 +19,7 @@ syntax = "proto3";
 option java_package = "com.snowflake.apps.streamlit";
 option java_outer_classname = "BidiComponentProto";
 
-import "streamlit/proto/Arrow.proto";
+import "streamlit/proto/ArrowData.proto";
 
 // Mixed data structure that allows JSON with embedded Arrow references
 message MixedData {
@@ -27,7 +27,7 @@ message MixedData {
     string json = 1;
 
     // Map of arrow data blobs keyed by reference ID
-    map<string, Arrow> arrow_blobs = 2;
+    map<string, ArrowData> arrow_blobs = 2;
 }
 
 // Represents an instance of a bidirectional component.
@@ -53,11 +53,11 @@ message BidiComponent {
     // The component's data payload. Exactly one of the following fields
     // will be set at any given time.
     oneof data {
-      // JSON-serialised value for generic data payloads.
+      // JSON-serialized value for generic data payloads.
       string json = 10;
 
-      // Apache Arrow representation for dataframe-like payloads.
-      Arrow arrow = 11;
+      // Data-only Apache Arrow buffer for dataframe-like payloads.
+      ArrowData arrow_data = 14;
 
       // Arbitrary bytes payload.
       bytes bytes = 12;

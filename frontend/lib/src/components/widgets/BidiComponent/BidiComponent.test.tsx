@@ -403,9 +403,10 @@ describe("BidiComponent", () => {
         description: "should handle JSON data correctly",
       },
       {
-        dataType: "Arrow",
+        dataType: "ArrowData",
         elementConfig: {
-          arrow: { data: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]) },
+          data: "arrowData",
+          arrowData: { data: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]) },
         },
         description: "should handle Arrow data without errors",
       },
@@ -420,14 +421,17 @@ describe("BidiComponent", () => {
         dataType: "undefined/null",
         elementConfig: {
           json: undefined,
-          arrow: undefined,
+          arrowData: undefined,
           bytes: undefined,
           mixed: undefined,
         },
         description: "should handle undefined/null data gracefully",
       },
     ])("$description", ({ elementConfig }) => {
-      const element = createMockElement(elementConfig)
+      const element = createMockElement({
+        // Explicitly set the oneof discriminator for type safety
+        ...(elementConfig as Partial<BidiComponentProto>),
+      })
 
       renderWithContexts(
         <BidiComponent

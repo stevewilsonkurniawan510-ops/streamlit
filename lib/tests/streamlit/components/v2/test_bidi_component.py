@@ -267,7 +267,7 @@ class BidiComponentTest(DeltaGeneratorTestCase):
         assert json.loads(proto.json) == test_dict
 
     def test_component_with_arrow_data(self):
-        """Test component with dataframe-like data serialised to Arrow."""
+        """Test component with dataframe-like data serialized to Arrow."""
         import pandas as pd
 
         # Register a component
@@ -286,9 +286,9 @@ class BidiComponentTest(DeltaGeneratorTestCase):
         delta = self.get_delta_from_queue()
         bidi_component_proto = delta.new_element.bidi_component
         assert bidi_component_proto.component_name == "arrow_data_component"
-        assert bidi_component_proto.WhichOneof("data") == "arrow"
+        assert bidi_component_proto.WhichOneof("data") == "arrow_data"
         # The Arrow bytes should be non-empty
-        assert len(bidi_component_proto.arrow.data) > 0
+        assert len(bidi_component_proto.arrow_data.data) > 0
 
     def test_component_with_bytes_data(self):
         """Test component with raw bytes data passed through unchanged."""

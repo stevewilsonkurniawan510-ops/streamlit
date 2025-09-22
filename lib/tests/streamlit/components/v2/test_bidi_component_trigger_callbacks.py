@@ -108,7 +108,7 @@ class BidiComponentTriggerCallbackTest(DeltaGeneratorTestCase):
         ----------
         trigger_updates : Dict[str, Any]
             Mapping from *event name* to *payload* value. The payload will be
-            JSON-serialised before being injected into the ``WidgetState``
+            JSON-serialized before being injected into the ``WidgetState``
             protobuf.
         """
 
