@@ -85,7 +85,7 @@ export const BidiComponentContextProvider: FC<
             const arrowBlobsMap: Record<string, Uint8Array> = {}
             if (arrowBlobs) {
               Object.entries(arrowBlobs).forEach(([key, arrowProto]) => {
-                if (arrowProto && arrowProto.data) {
+                if (arrowProto?.data) {
                   arrowBlobsMap[key] = arrowProto.data
                 }
               })
@@ -122,6 +122,7 @@ export const BidiComponentContextProvider: FC<
       getWidgetValue,
       htmlContent: htmlContent?.trim(),
       id,
+      formId: element.formId ?? undefined,
       jsContent: jsContent || undefined,
       jsSourcePath: jsSourcePath || undefined,
       theme,
@@ -135,6 +136,7 @@ export const BidiComponentContextProvider: FC<
     getWidgetValue,
     htmlContent,
     id,
+    element.formId,
     jsContent,
     jsSourcePath,
     parsedData,

@@ -38,6 +38,7 @@ const loadAndRunModule = async <T extends ComponentState>({
   componentIdForWidgetMgr,
   componentName,
   data,
+  formId,
   fragmentId,
   getWidgetValue,
   moduleUrl,
@@ -49,6 +50,7 @@ const loadAndRunModule = async <T extends ComponentState>({
   componentName: string
   data: unknown
   getWidgetValue: () => T
+  formId: string | undefined
   fragmentId: string | undefined
   moduleUrl: string
   parentElement: HTMLElement | ShadowRoot
@@ -80,7 +82,7 @@ const loadAndRunModule = async <T extends ComponentState>({
     }
 
     void widgetMgr.setJsonValue(
-      { id: componentIdForWidgetMgr },
+      { id: componentIdForWidgetMgr, formId },
       newValue,
       { fromUi: true },
       fragmentId
@@ -93,7 +95,7 @@ const loadAndRunModule = async <T extends ComponentState>({
   ): void => {
     const triggerId = makeTriggerAggregatorId(componentIdForWidgetMgr)
     void widgetMgr.setTriggerValue(
-      { id: triggerId },
+      { id: triggerId, formId },
       { fromUi: true },
       fragmentId,
       { event: name, value }
@@ -124,6 +126,7 @@ export const useHandleJsContent = ({
   const {
     componentName,
     data,
+    formId,
     fragmentId,
     getWidgetValue,
     id,
@@ -175,6 +178,7 @@ export const useHandleJsContent = ({
             componentIdForWidgetMgr: id,
             componentName,
             data,
+            formId,
             fragmentId,
             getWidgetValue,
             moduleUrl: dataUri,
@@ -207,6 +211,7 @@ export const useHandleJsContent = ({
               componentIdForWidgetMgr: id,
               componentName,
               data,
+              formId,
               fragmentId,
               getWidgetValue,
               moduleUrl: scriptUrl,
@@ -252,6 +257,7 @@ export const useHandleJsContent = ({
     componentName,
     containerRef,
     data,
+    formId,
     fragmentId,
     getWidgetValue,
     id,

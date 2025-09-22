@@ -32,6 +32,7 @@ export type BidiComponentContextShape<
   getWidgetValue: () => TComponentState
   htmlContent: string | undefined
   id: string
+  formId: string | undefined
   jsContent: string | undefined
   jsSourcePath: string | undefined
   theme: StreamlitTheme
