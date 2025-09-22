@@ -88,55 +88,88 @@ def my_component(
     )
 
 
+# ---------------------------------------------------------------------------
 # Global counters and run tracking
+# ---------------------------------------------------------------------------
 if "runs" not in st.session_state:
     st.session_state.runs = 0
 st.session_state.runs += 1
 
-if "text_change_count" not in st.session_state:
-    st.session_state.text_change_count = 0
-if "clicked_count" not in st.session_state:
-    st.session_state.clicked_count = 0
+# Use separate counters for Form vs Fragment to make behavior clearer.
+# The overall run counter remains shared.
+if "form_text_changes" not in st.session_state:
+    st.session_state.form_text_changes = 0
+if "form_clicked_changes" not in st.session_state:
+    st.session_state.form_clicked_changes = 0
+if "frag_text_changes" not in st.session_state:
+    st.session_state.frag_text_changes = 0
+if "frag_clicked_changes" not in st.session_state:
+    st.session_state.frag_clicked_changes = 0
 
 
-def handle_text_change() -> None:
-    st.session_state.text_change_count += 1
+def handle_form_text_change() -> None:
+    st.session_state.form_text_changes += 1
 
 
-def handle_clicked_change() -> None:
-    st.session_state.clicked_count += 1
+def handle_form_clicked_change() -> None:
+    # Triggers inside forms are ignored by CCv2 to match Streamlit form semantics.
+    # This callback will only be invoked if a trigger is delivered by the backend,
+    # which should not occur for form-scoped CCv2 triggers.
+    st.session_state.form_clicked_changes += 1
 
 
-# Form context: interactions should not trigger reruns until form submit
+def handle_frag_text_change() -> None:
+    st.session_state.frag_text_changes += 1
+
+
+def handle_frag_clicked_change() -> None:
+    st.session_state.frag_clicked_changes += 1
+
+
+# ---------------------------------------------------------------------------
+# Form area: Interactions are deferred until submit; triggers are ignored
+# ---------------------------------------------------------------------------
+st.subheader("Form")
 with st.form(key="bidi_form", clear_on_submit=False):
     form_result = my_component(
         key="in_form",
         data={"contextName": "Form"},
-        on_text_change=handle_text_change,
-        on_clicked_change=handle_clicked_change,
+        on_text_change=handle_form_text_change,
+        on_clicked_change=handle_form_clicked_change,
     )
     st.form_submit_button("Submit Form")
 
 st.write(f"Form Result: {form_result}")
 st.text(f"Form session state: {st.session_state.get('in_form')}")
+st.write(f"Form Text changes: {st.session_state.form_text_changes}")
+st.write(f"Form Clicked count: {st.session_state.form_clicked_changes}")
+
+st.divider()
 
 
-# Fragment context: interactions should rerun only the fragment
+# ---------------------------------------------------------------------------
+# Fragment area: Interactions rerun only the fragment
+# ---------------------------------------------------------------------------
+st.subheader("Fragment")
+
+
 @st.fragment()
 def render_fragment() -> None:
     frag_result = my_component(
         key="in_fragment",
         data={"contextName": "Fragment"},
-        on_text_change=handle_text_change,
-        on_clicked_change=handle_clicked_change,
+        on_text_change=handle_frag_text_change,
+        on_clicked_change=handle_frag_clicked_change,
     )
     st.write(f"Fragment Result: {frag_result}")
     st.text(f"Fragment session state: {st.session_state.get('in_fragment')}")
+    st.write(f"Fragment Text changes: {st.session_state.frag_text_changes}")
+    st.write(f"Fragment Clicked count: {st.session_state.frag_clicked_changes}")
 
 
 render_fragment()
 
+st.divider()
+
 
 st.write(f"Runs: {st.session_state.runs}")
-st.write(f"Text changes: {st.session_state.text_change_count}")
-st.write(f"Clicked count: {st.session_state.clicked_count}")

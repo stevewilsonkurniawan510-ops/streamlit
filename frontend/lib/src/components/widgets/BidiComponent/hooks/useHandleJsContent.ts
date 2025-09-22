@@ -93,6 +93,18 @@ const loadAndRunModule = async <T extends ComponentState>({
     name: string,
     value: T[keyof T]
   ): void => {
+    // IMPORTANT: Triggers are not allowed inside forms in Streamlit's execution
+    // model. Native buttons cannot be placed in forms, and form semantics defer
+    // updates until submit. To align CCv2 with existing behavior without
+    // changing global runtime semantics, we no-op trigger calls when the
+    // component is rendered inside a form. Developers should use setStateValue
+    // and the form submit button to commit changes.
+    if (formId) {
+      LOG.warn(
+        "BidiComponent: setTriggerValue ignored inside st.form. Triggers are not allowed in forms; use setStateValue and form submit instead."
+      )
+      return
+    }
     const triggerId = makeTriggerAggregatorId(componentIdForWidgetMgr)
     void widgetMgr.setTriggerValue(
       { id: triggerId, formId },
