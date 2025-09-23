@@ -17,7 +17,7 @@
 
 import { getLogger } from "loglevel"
 
-const LOG = getLogger("convertAudioToWav")
+const LOG = getLogger("encodeToWav")
 
 /**
  * Converts an audio blob to WAV format with high-quality resampling.
@@ -28,7 +28,7 @@ const LOG = getLogger("convertAudioToWav")
  * @param targetSampleRate - Optional target sample rate for the output WAV file
  * @returns A Promise resolving to the WAV file as a Blob, or undefined on error
  */
-async function convertFileToWav(
+async function encodeToWav(
   fileBlob: Blob,
   targetSampleRate?: number
 ): Promise<Blob | undefined> {
@@ -173,4 +173,4 @@ function encodeWAV(audioBuffer: AudioBuffer, sampleRate: number): Blob {
   return new Blob([buffer], { type: "audio/wav" })
 }
 
-export default convertFileToWav
+export default encodeToWav
