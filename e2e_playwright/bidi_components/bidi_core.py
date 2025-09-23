@@ -88,6 +88,7 @@ def stateful_component(
     on_text_change: WidgetCallback | None = None,
     width: Width = "stretch",
     height: Height = "content",
+    default: dict[str, Any] | None = None,
 ) -> BidiComponentResult:
     return _STATEFUL_CMP(
         isolate_styles=True,
@@ -97,6 +98,7 @@ def stateful_component(
         on_text_change=on_text_change,
         width=width,
         height=height,
+        default=default,
     )
 
 
@@ -296,144 +298,139 @@ with trigger_container:
 
 st.divider()
 
-st.subheader("Form context (defer state; triggers ignored by CCv2 semantics)")
+with st.container():
+    st.subheader("Form context (defer state; triggers ignored by CCv2 semantics)")
 
-if "form_text_changes" not in st.session_state:
-    st.session_state.form_text_changes = 0
-if "form_clicked_changes" not in st.session_state:
-    st.session_state.form_clicked_changes = 0
+    if "form_text_changes" not in st.session_state:
+        st.session_state.form_text_changes = 0
+    if "form_clicked_changes" not in st.session_state:
+        st.session_state.form_clicked_changes = 0
 
+    def _handle_form_text_change() -> None:
+        st.session_state.form_text_changes += 1
 
-def _handle_form_text_change() -> None:
-    st.session_state.form_text_changes += 1
+    def _handle_form_clicked_change() -> None:
+        # This should not be invoked for CCv2 triggers inside forms.
+        st.session_state.form_clicked_changes += 1
 
+    with st.form(key="bidi_form", clear_on_submit=False):
+        form_result = ctx_component(
+            key="in_form",
+            data={"contextName": "Form"},
+            on_text_change=_handle_form_text_change,
+            on_clicked_change=_handle_form_clicked_change,
+        )
+        st.form_submit_button("Submit Form")
 
-def _handle_form_clicked_change() -> None:
-    # This should not be invoked for CCv2 triggers inside forms.
-    st.session_state.form_clicked_changes += 1
-
-
-with st.form(key="bidi_form", clear_on_submit=False):
-    form_result = ctx_component(
-        key="in_form",
-        data={"contextName": "Form"},
-        on_text_change=_handle_form_text_change,
-        on_clicked_change=_handle_form_clicked_change,
-    )
-    st.form_submit_button("Submit Form")
-
-st.write(f"Form Result: {form_result}")
-st.text(f"Form session state: {st.session_state.get('in_form')}")
-st.write(f"Form Text changes: {st.session_state.form_text_changes}")
-st.write(f"Form Clicked count: {st.session_state.form_clicked_changes}")
+    st.write(f"Form Result: {form_result}")
+    st.text(f"Form session state: {st.session_state.get('in_form')}")
+    st.write(f"Form Text changes: {st.session_state.form_text_changes}")
+    st.write(f"Form Clicked count: {st.session_state.form_clicked_changes}")
 
 
 st.divider()
 
+with st.container():
+    st.subheader("Fragment context (partial reruns and local counters)")
 
-st.subheader("Fragment context (partial reruns and local counters)")
+    if "frag_text_changes" not in st.session_state:
+        st.session_state.frag_text_changes = 0
+    if "frag_clicked_changes" not in st.session_state:
+        st.session_state.frag_clicked_changes = 0
+    if "runs" not in st.session_state:
+        st.session_state.runs = 0
+    st.session_state.runs += 1
 
-if "frag_text_changes" not in st.session_state:
-    st.session_state.frag_text_changes = 0
-if "frag_clicked_changes" not in st.session_state:
-    st.session_state.frag_clicked_changes = 0
-if "runs" not in st.session_state:
-    st.session_state.runs = 0
-st.session_state.runs += 1
+    @st.fragment()
+    def render_fragment() -> None:
+        frag_result = ctx_component(
+            key="in_fragment",
+            data={"contextName": "Fragment"},
+            on_text_change=lambda: _inc("frag_text_changes"),
+            on_clicked_change=lambda: _inc("frag_clicked_changes"),
+        )
+        st.write(f"Fragment Result: {frag_result}")
+        st.text(f"Fragment session state: {st.session_state.get('in_fragment')}")
+        st.write(f"Fragment Text changes: {st.session_state.frag_text_changes}")
+        st.write(f"Fragment Clicked count: {st.session_state.frag_clicked_changes}")
 
+    def _inc(name: str) -> None:
+        st.session_state[name] = int(st.session_state.get(name, 0)) + 1
 
-@st.fragment()
-def render_fragment() -> None:
-    frag_result = ctx_component(
-        key="in_fragment",
-        data={"contextName": "Fragment"},
-        on_text_change=lambda: _inc("frag_text_changes"),
-        on_clicked_change=lambda: _inc("frag_clicked_changes"),
-    )
-    st.write(f"Fragment Result: {frag_result}")
-    st.text(f"Fragment session state: {st.session_state.get('in_fragment')}")
-    st.write(f"Fragment Text changes: {st.session_state.frag_text_changes}")
-    st.write(f"Fragment Clicked count: {st.session_state.frag_clicked_changes}")
+    render_fragment()
 
-
-def _inc(name: str) -> None:
-    st.session_state[name] = int(st.session_state.get(name, 0)) + 1
-
-
-render_fragment()
-
-st.write(f"Runs: {st.session_state.runs}")
+    st.write(f"Runs: {st.session_state.runs}")
 
 
 st.divider()
 
+with st.container():
+    st.subheader("Remount behavior (unmount/remount sequence with persistent state)")
 
-st.subheader("Remount behavior (unmount/remount sequence with persistent state)")
+    def _remount_stateful_component(
+        *,
+        key: str,
+    ) -> BidiComponentResult:
+        # Resolve initial values: prefer session_state if available, else fall back to default values
+        state_value = st.session_state.get(key)
+        initial_defaults: dict[str, Any] = {"range": 10, "text": "hello"}
+        if isinstance(state_value, dict):
+            value_dict = state_value.get("value")
+            if isinstance(value_dict, dict):
+                initial_defaults.update(value_dict)
 
+        return stateful_component(
+            key=key,
+            on_range_change=lambda: _inc("remount_range_change_count"),
+            on_text_change=lambda: _inc("remount_text_change_count"),
+            default={"range": 10, "text": "hello"},
+            data={
+                "initialRange": initial_defaults.get("range", 10),
+                "initialText": initial_defaults.get("text", "hello"),
+            },
+        )
 
-def _remount_stateful_component(
-    *,
-    key: str,
-) -> BidiComponentResult:
-    # Resolve initial values: prefer session_state if available, else fall back to default values
-    state_value = st.session_state.get(key)
-    initial_defaults: dict[str, Any] = {"range": 10, "text": "hello"}
-    if isinstance(state_value, dict):
-        value_dict = state_value.get("value")
-        if isinstance(value_dict, dict):
-            initial_defaults.update(value_dict)
+    if "remount_range_change_count" not in st.session_state:
+        st.session_state.remount_range_change_count = 0
+    if "remount_text_change_count" not in st.session_state:
+        st.session_state.remount_text_change_count = 0
 
-    return stateful_component(
-        key=key,
-        on_range_change=lambda: _inc("remount_range_change_count"),
-        on_text_change=lambda: _inc("remount_text_change_count"),
-        data={
-            "initialRange": initial_defaults.get("range", 10),
-            "initialText": initial_defaults.get("text", "hello"),
-        },
-    )
+    # Standard unmount/remount pattern
+    if st.button("Create some elements to unmount component"):
+        for _ in range(3):
+            time.sleep(1)
+            st.write("Another element")
 
-
-if "remount_range_change_count" not in st.session_state:
-    st.session_state.remount_range_change_count = 0
-if "remount_text_change_count" not in st.session_state:
-    st.session_state.remount_text_change_count = 0
-
-# Standard unmount/remount pattern
-if st.button("Create some elements to unmount component"):
-    for _ in range(3):
-        time.sleep(1)
-        st.write("Another element")
-
-remount_key = "remount_component_1"
-st.write("Above the component")
-remount_result = _remount_stateful_component(key=remount_key)
-st.write(f"Result: {remount_result}")
-st.text(f"session_state: {st.session_state.get(remount_key)}")
-st.write("Below the component")
-st.write(f"Range change count: {st.session_state.remount_range_change_count}")
-st.write(f"Text change count: {st.session_state.remount_text_change_count}")
+    remount_key = "remount_component_1"
+    st.write("Above the component")
+    remount_result = _remount_stateful_component(key=remount_key)
+    st.write(f"Result: {remount_result}")
+    st.text(f"session_state: {st.session_state.get(remount_key)}")
+    st.write("Below the component")
+    st.write(f"Range change count: {st.session_state.remount_range_change_count}")
+    st.write(f"Text change count: {st.session_state.remount_text_change_count}")
 
 
 st.divider()
-st.subheader("Errors (intentionally broken components)")
+with st.container():
+    st.subheader("Errors (intentionally broken components)")
 
-# Incorrect JS (no default export)
-_incorrect_js = st.components.v2.component(
-    "incorrectJsComponent",
-    html="""<h1>The JS is incorrect</h1>""",
-    js="""
-        function Foo() {
-            // I am some JS without a default export
-        }
-    """,
-)
-_incorrect_js()
+    # Incorrect JS (no default export)
+    _incorrect_js = st.components.v2.component(
+        "incorrectJsComponent",
+        html="""<h1>The JS is incorrect</h1>""",
+        js="""
+            function Foo() {
+                // I am some JS without a default export
+            }
+        """,
+    )
+    _incorrect_js()
 
-# Incorrect CSS path
-_incorrect_css = st.components.v2.component(
-    "incorrectCssPathComponent",
-    html="""<h1>The CSS path is incorrect</h1>""",
-    css=Path(__file__).parent / "incorrect_css_path.css",  # type: ignore[arg-type]
-)
-_incorrect_css()
+    # Incorrect CSS path
+    _incorrect_css = st.components.v2.component(
+        "incorrectCssPathComponent",
+        html="""<h1>The CSS path is incorrect</h1>""",
+        css=Path(__file__).parent / "incorrect_css_path.css",  # type: ignore[arg-type]
+    )
+    _incorrect_css()

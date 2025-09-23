@@ -14,11 +14,17 @@
 
 from playwright.sync_api import Locator, Page, expect
 
+from e2e_playwright.conftest import wait_for_app_run
+from e2e_playwright.shared.app_utils import click_form_button
+
 
 def section(app: Page, heading_name: str) -> Locator:
-    """Return the closest stLayoutWrapper ancestor of the named header."""
-    header = app.get_by_role("heading", name=heading_name)
-    return header.locator("xpath=ancestor::*[@data-testid='stLayoutWrapper'][1]")
+    """Return the stLayoutWrapper that contains the given heading.
+
+    Uses a containment filter to scope DOM queries to the specific section.
+    """
+    heading = app.get_by_role("heading", name=heading_name, exact=True)
+    return app.locator("[data-testid='stLayoutWrapper']").filter(has=heading).first
 
 
 def test_stateful_interactions(app: Page) -> None:
@@ -146,3 +152,141 @@ def test_trigger_interactions(app: Page) -> None:
         )
     ).to_be_visible()
     expect(trigger.get_by_text("Session state: {'value': {}}"))
+
+
+def test_form_interactions_deferred_until_submit(app: Page) -> None:
+    form = section(
+        app,
+        "Form context (defer state; triggers ignored by CCv2 semantics)",
+    )
+
+    # Initial state
+    expect(app.get_by_text("Runs: 1")).to_be_visible()
+    expect(form.get_by_text("Form Text changes: 0")).to_be_visible()
+    expect(form.get_by_text("Form Clicked count: 0")).to_be_visible()
+
+    # Before submitting the form, interactions should NOT trigger a rerun.
+    form.get_by_text("Set text (Form)").click()
+    expect(app.get_by_text("Runs: 1")).to_be_visible()
+    expect(form.get_by_text("Form Text changes: 0")).to_be_visible()
+
+    # Triggers are disallowed in forms for CCv2; this must be a no-op.
+    form.get_by_text("Trigger click (Form)").click()
+    expect(app.get_by_text("Runs: 1")).to_be_visible()
+    expect(form.get_by_text("Form Clicked count: 0")).to_be_visible()
+
+    # Also the displayed state should still be empty before submit.
+    expect(form.get_by_text("Form session state: {'value': {}}"))
+
+    # Submit the form and verify rerun + updates (only stateful changes apply).
+    click_form_button(app, "Submit Form")
+
+    expect(app.get_by_text("Runs: 2")).to_be_visible()
+    # Trigger callback remains unchanged due to no-op in form.
+    expect(form.get_by_text("Form Text changes: 1")).to_be_visible()
+    expect(form.get_by_text("Form Clicked count: 0")).to_be_visible()
+
+    # Session state should now contain values set by the component.
+    expect(form.get_by_text("Form session state:")).not_to_have_text(
+        "Form session state: {'value': {}}"
+    )
+    expect(form.get_by_text("Form session state:")).to_contain_text("text")
+
+
+def test_fragment_interactions_rerun_only_fragment(app: Page) -> None:
+    fragment = section(app, "Fragment context (partial reruns and local counters)")
+
+    # Initial state for fragments
+    expect(app.get_by_text("Runs: 1")).to_be_visible()
+    expect(fragment.get_by_text("Fragment session state: {'value': {}}"))
+    expect(fragment.get_by_text("Fragment Text changes: 0")).to_be_visible()
+    expect(fragment.get_by_text("Fragment Clicked count: 0")).to_be_visible()
+
+    # Interact inside fragment: should update fragment content and callbacks,
+    # but NOT increment global runs.
+    fragment.get_by_text("Set text (Fragment)").click()
+    # Fragment state updates immediately
+    expect(fragment.get_by_text("Fragment session state:")).not_to_have_text(
+        "Fragment session state: {'value': {}}"
+    )
+    expect(fragment.get_by_text("Fragment Text changes: 1")).to_be_visible()
+    # Assert Runs remains 1
+    expect(app.get_by_text("Runs: 1")).to_be_visible()
+
+    fragment.get_by_text("Trigger click (Fragment)").click()
+    # Trigger inside fragment updates fragment-local UI/state; full Runs remains 1.
+    expect(fragment.get_by_text("Fragment Clicked count: 1")).to_be_visible()
+    expect(app.get_by_text("Runs: 1")).to_be_visible()
+
+
+def test_state_persists_across_unmount_and_remount(app: Page) -> None:
+    remount = section(
+        app, "Remount behavior (unmount/remount sequence with persistent state)"
+    )
+
+    # Initial defaults
+    expect(remount.get_by_label("Range")).to_have_value("10")
+    expect(remount.get_by_label("Text")).to_have_value("hello")
+    expect(
+        remount.get_by_text("session_state: {'value': {'range': 10, 'text': 'hello'}}")
+    ).to_be_visible()
+
+    # Interact to change state
+    remount.get_by_label("Range").fill("25")
+    remount.get_by_label("Text").fill("world")
+    wait_for_app_run(app)
+
+    # Assert DOM reflects the changes
+    expect(remount.get_by_label("Range")).to_have_value("25")
+    expect(remount.get_by_label("Text")).to_have_value("world")
+
+    expect(
+        remount.get_by_text(
+            "session_state: {'value': {'range': '25', 'text': 'world'}}",
+        )
+    ).to_be_visible()
+    expect(remount.get_by_text("Range change count: 1")).to_be_visible()
+    expect(remount.get_by_text("Text change count: 1")).to_be_visible()
+
+    # Trigger unmount/remount via standard pattern
+    remount.get_by_text("Create some elements to unmount component").click()
+
+    # Verify that DOM values and session_state persisted across remount
+    expect(remount.get_by_label("Range")).to_have_value("25")
+    expect(remount.get_by_label("Text")).to_have_value("world")
+    expect(
+        remount.get_by_text(
+            "session_state: {'value': {'range': '25', 'text': 'world'}}",
+        )
+    ).to_be_visible()
+
+    # Interact again to ensure handlers still work after remount
+    remount.get_by_label("Range").fill("30")
+    remount.get_by_label("Text").fill("!")
+    wait_for_app_run(app)
+
+    # Assert DOM and session_state after second change
+    expect(remount.get_by_label("Range")).to_have_value("30")
+    expect(remount.get_by_label("Text")).to_have_value("!")
+    expect(
+        remount.get_by_text(
+            "session_state: {'value': {'range': '30', 'text': '!'}}",
+        )
+    ).to_be_visible()
+    expect(remount.get_by_text("Range change count: 2")).to_be_visible()
+    expect(remount.get_by_text("Text change count: 2")).to_be_visible()
+
+
+def test_error_handling_messages(app: Page) -> None:
+    expect(
+        app.get_by_text(
+            "BidiComponent Error: JS module does not have a default export function."
+        )
+    ).to_be_visible()
+
+    expect(
+        app.get_by_text(
+            "streamlit.errors.StreamlitAPIException: css parameter must be a string or None. "
+            "Pass a string path or glob."
+        )
+    ).to_be_visible()
