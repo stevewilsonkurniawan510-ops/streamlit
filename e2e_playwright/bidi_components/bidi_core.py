@@ -249,46 +249,49 @@ with st.container():
 st.divider()
 
 
-st.subheader("Trigger")
+trigger_container = st.container()
+with trigger_container:
+    st.subheader("Trigger")
 
-if "trigger_foo_count" not in st.session_state:
-    st.session_state.trigger_foo_count = 0
-if "trigger_bar_count" not in st.session_state:
-    st.session_state.trigger_bar_count = 0
-if "trigger_last_on_foo_change_processed" not in st.session_state:
-    st.session_state.trigger_last_on_foo_change_processed = None
-if "trigger_last_on_bar_change_processed" not in st.session_state:
-    st.session_state.trigger_last_on_bar_change_processed = None
+    if "trigger_foo_count" not in st.session_state:
+        st.session_state.trigger_foo_count = 0
+    if "trigger_bar_count" not in st.session_state:
+        st.session_state.trigger_bar_count = 0
+    if "trigger_last_on_foo_change_processed" not in st.session_state:
+        st.session_state.trigger_last_on_foo_change_processed = None
+    if "trigger_last_on_bar_change_processed" not in st.session_state:
+        st.session_state.trigger_last_on_bar_change_processed = None
 
+    def _handle_foo_change() -> None:
+        st.session_state.trigger_foo_count += 1
+        st.session_state.trigger_last_on_foo_change_processed = time.strftime(
+            "%H:%M:%S"
+        )
 
-def _handle_foo_change() -> None:
-    st.session_state.trigger_foo_count += 1
-    st.session_state.trigger_last_on_foo_change_processed = time.strftime("%H:%M:%S")
+    def _handle_bar_change() -> None:
+        st.session_state.trigger_bar_count += 1
+        st.session_state.trigger_last_on_bar_change_processed = time.strftime(
+            "%H:%M:%S"
+        )
 
+    trigger_result = trigger_component(
+        key="trigger_component_1",
+        on_foo_change=_handle_foo_change,
+        on_bar_change=_handle_bar_change,
+    )
 
-def _handle_bar_change() -> None:
-    st.session_state.trigger_bar_count += 1
-    st.session_state.trigger_last_on_bar_change_processed = time.strftime("%H:%M:%S")
+    st.write(f"Result: {trigger_result}")
+    st.write(f"Foo count: {st.session_state.trigger_foo_count}")
+    st.write(
+        f"Last on_foo_change callback processed at: {st.session_state.trigger_last_on_foo_change_processed}"
+    )
+    st.write(f"Bar count: {st.session_state.trigger_bar_count}")
+    st.write(
+        f"Last on_bar_change callback processed at: {st.session_state.trigger_last_on_bar_change_processed}"
+    )
+    st.text(f"Session state: {st.session_state.get('trigger_component_1')}")
 
-
-trigger_result = trigger_component(
-    key="trigger_component_1",
-    on_foo_change=_handle_foo_change,
-    on_bar_change=_handle_bar_change,
-)
-
-st.write(f"Result: {trigger_result}")
-st.write(f"Foo count: {st.session_state.trigger_foo_count}")
-st.write(
-    f"Last on_foo_change callback processed at: {st.session_state.trigger_last_on_foo_change_processed}"
-)
-st.write(f"Bar count: {st.session_state.trigger_bar_count}")
-st.write(
-    f"Last on_bar_change callback processed at: {st.session_state.trigger_last_on_bar_change_processed}"
-)
-st.text(f"Session state: {st.session_state.get('trigger_component_1')}")
-
-st.button("st.button trigger")
+    st.button("st.button trigger")
 
 
 st.divider()

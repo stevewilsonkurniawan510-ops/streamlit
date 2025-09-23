@@ -80,3 +80,69 @@ def test_stateful_interactions(app: Page) -> None:
     ).to_be_visible()
     expect(stateful.get_by_text("Range change count: 1")).to_be_visible()
     expect(stateful.get_by_text("Text change count: 1")).to_be_visible()
+
+
+def test_trigger_interactions(app: Page) -> None:
+    """Test the interactions with trigger callbacks and state in the Bidi Component."""
+    trigger = section(app, "Trigger")
+
+    expect(trigger.get_by_text("Foo count: 0")).to_be_visible()
+    expect(trigger.get_by_text("Bar count: 0")).to_be_visible()
+    expect(
+        trigger.get_by_text(
+            "Result: {'delta_generator': DeltaGenerator(), 'foo': None, 'bar': None}"
+        )
+    ).to_be_visible()
+    expect(trigger.get_by_text("Session state: {'value': {}}")).to_be_visible()
+
+    trigger.get_by_text("Trigger foo").click()
+    expect(trigger.get_by_text("Foo count: 1")).to_be_visible()
+    expect(trigger.get_by_text("Bar count: 0")).to_be_visible()
+    expect(
+        trigger.get_by_text(
+            "Result: {'delta_generator': DeltaGenerator(), 'foo': True, 'bar': None}"
+        )
+    ).to_be_visible()
+    expect(trigger.get_by_text("Session state: {'value': {'foo': True}}"))
+
+    trigger.get_by_text("Trigger bar").click()
+    expect(trigger.get_by_text("Foo count: 1")).to_be_visible()
+    expect(trigger.get_by_text("Bar count: 1")).to_be_visible()
+    expect(
+        trigger.get_by_text(
+            "Result: {'delta_generator': DeltaGenerator(), 'foo': None, 'bar': True}"
+        )
+    ).to_be_visible()
+    expect(trigger.get_by_text("Session state: {'value': {'bar': True}}"))
+
+    # Trigger foo again so it has a different value from bar
+    trigger.get_by_text("Trigger foo").click()
+    expect(trigger.get_by_text("Foo count: 2")).to_be_visible()
+    expect(trigger.get_by_text("Bar count: 1")).to_be_visible()
+    expect(
+        trigger.get_by_text(
+            "Result: {'delta_generator': DeltaGenerator(), 'foo': True, 'bar': None}"
+        )
+    ).to_be_visible()
+    expect(trigger.get_by_text("Session state: {'value': {'foo': True}}"))
+
+    trigger.get_by_text("Trigger both").click()
+    expect(trigger.get_by_text("Foo count: 3")).to_be_visible()
+    expect(trigger.get_by_text("Bar count: 2")).to_be_visible()
+    expect(
+        trigger.get_by_text(
+            "Result: {'delta_generator': DeltaGenerator(), 'foo': True, 'bar': True}"
+        )
+    ).to_be_visible()
+    expect(trigger.get_by_text("Session state: {'value': {'foo': True, 'bar': True}}"))
+
+    # Trigger a streamlit button to ensure the trigger values in the Bidi Component get reset
+    trigger.get_by_text("st.button trigger").click()
+    expect(trigger.get_by_text("Foo count: 3")).to_be_visible()
+    expect(trigger.get_by_text("Bar count: 2")).to_be_visible()
+    expect(
+        trigger.get_by_text(
+            "Result: {'delta_generator': DeltaGenerator(), 'foo': None, 'bar': None}"
+        )
+    ).to_be_visible()
+    expect(trigger.get_by_text("Session state: {'value': {}}"))
