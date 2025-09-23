@@ -1,4 +1,4 @@
-name: Check and create PR for new emojis/material icons
+name: Emojis/Material icons - check & create PR
 
 on:
   schedule:
@@ -7,12 +7,14 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Run without creating PR to update emojis/material icons"
+        # Dry run used for workflow testing
+        description: "Run without creating PR"
         type: boolean
         required: false
         default: false
 
 permissions:
+  # Permissions required for workflow to create/push branch and PR
   contents: write
   pull-requests: write
 
@@ -73,6 +75,7 @@ jobs:
       - name: Check for updates
         id: check-updates
         run: |
+          # Script failures indicate there are emoji/icon updates needed
           if [ "${{ steps.check-material-icons.outcome }}" = "failure" ] || [ "${{ steps.check-emojis.outcome }}" = "failure" ]; then
             echo "updates_needed=true" >> $GITHUB_OUTPUT
           else
@@ -151,7 +154,10 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # To avoid spamming Slack, only send notifications if updates were needed & not a dry run
+
       - name: Slack notification - PR created
+        # Success slack indicates updates were needed and PR was created
         if: ${{ success() && steps.check-updates.outputs.updates_needed == 'true' && inputs.dry_run != true }}
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
@@ -162,6 +168,7 @@ jobs:
           python scripts/slack_notifications.py assets success
 
       - name: Slack notification - PR creation failed
+        # Failure slack indicates updates were needed but PR was not created successfully
         if: ${{ failure() && steps.check-updates.outputs.updates_needed == 'true' && inputs.dry_run != true }}
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
