@@ -290,3 +290,45 @@ def test_error_handling_messages(app: Page) -> None:
             "Pass a string path or glob."
         )
     ).to_be_visible()
+
+
+def test_basic_initial_and_submission(app: Page) -> None:
+    basic = section(app, "Basic (broad CSS + mixed state/trigger)")
+
+    # Initial defaults from the component's HTML
+    expect(basic.get_by_label("Range")).to_have_value("20")
+    expect(basic.get_by_label("Text")).to_have_value("Text input")
+
+    # Verify initial result/session_state reflects provided defaults
+    expect(
+        basic.get_by_text(
+            "Result: {'delta_generator': DeltaGenerator(), 'formValues': {'range': 20, "
+            "'text': 'Text input'}, 'clicked': None}"
+        )
+    ).to_be_visible()
+    expect(
+        basic.get_by_text(
+            "session_state: {'value': {'formValues': {'range': 20, 'text': "
+            "'Text input'}}}"
+        )
+    ).to_be_visible()
+    expect(basic.get_by_text("Click count: 0")).to_be_visible()
+
+    # Change inputs then submit the form and ensure stateful value updates
+    basic.get_by_label("Range").fill("55")
+    basic.get_by_label("Text").fill("Updated")
+    basic.get_by_role("button", name="Submit form").click()
+
+    expect(
+        basic.get_by_text(
+            "Result: {'delta_generator': DeltaGenerator(), 'formValues': {'range': '55', "
+            "'text': 'Updated'}, 'clicked': True}"
+        )
+    ).to_be_visible()
+    expect(
+        basic.get_by_text(
+            "session_state: {'value': {'formValues': {'range': '55', 'text': "
+            "'Updated'}, 'clicked': True}}"
+        )
+    ).to_be_visible()
+    expect(basic.get_by_text("Click count: 1")).to_be_visible()

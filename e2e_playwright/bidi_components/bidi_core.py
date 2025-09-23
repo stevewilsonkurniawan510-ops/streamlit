@@ -413,6 +413,114 @@ with st.container():
 
 st.divider()
 with st.container():
+    st.subheader("Basic (broad CSS + mixed state/trigger)")
+
+    # Default values mirror the original default app
+    _BASIC_DEFAULT = {
+        "formValues": {
+            "range": 20,
+            "text": "Text input",
+        },
+    }
+
+    _BASIC_JS = """
+export default function(component) {
+  const { data, parentElement, setStateValue, setTriggerValue } = component
+
+  const form = parentElement.querySelector("form")
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    const formValues = {
+      range: event.target.range.value,
+      text: event.target.text.value,
+    }
+    setStateValue("formValues", formValues)
+  }
+
+  form.addEventListener("submit", handleSubmit)
+
+  const handleClick = () => {
+    setTriggerValue("clicked", true)
+  }
+
+  parentElement.addEventListener("click", handleClick)
+
+  return () => {
+    form.removeEventListener("submit", handleSubmit)
+    parentElement.removeEventListener("click", handleClick)
+  }
+}
+"""
+
+    _BASIC_HTML = f"""
+<h1>Hello World</h1>
+<form>
+  <label for="range">Range</label>
+  <input type="range" id="range" name="range" min="0" max="100" value="{_BASIC_DEFAULT["formValues"]["range"]}" />
+  <label for="text">Text</label>
+  <input type="text" id="text" name="text" value="{_BASIC_DEFAULT["formValues"]["text"]}" />
+  <button type="submit">Submit form</button>
+  <!-- Accessible labels used for selection in tests (no data-testids) -->
+</form>
+"""
+
+    # Intentionally broad CSS rules to verify style isolation
+    _BASIC_CSS = """
+div {
+    color: var(--st-primary-color);
+    background-color: var(--st-background-color);
+}
+"""
+
+    _BASIC_CMP = st.components.v2.component(
+        name="bidi_basic",
+        js=_BASIC_JS,
+        html=_BASIC_HTML,
+        css=_BASIC_CSS,
+    )
+
+    def basic_component(
+        *,
+        key: str | None = None,
+        data: Any | None = None,
+        on_formValues_change: WidgetCallback | None = None,  # noqa: N803
+        on_clicked_change: WidgetCallback | None = None,
+        default: dict[str, Any] | None = None,
+    ) -> BidiComponentResult:
+        return _BASIC_CMP(
+            isolate_styles=True,
+            key=key,
+            data=data,
+            on_formValues_change=on_formValues_change,
+            on_clicked_change=on_clicked_change,
+            default=default,
+        )
+
+    if "basic_click_count" not in st.session_state:
+        st.session_state.basic_click_count = 0
+
+    def _handle_basic_click() -> None:
+        st.session_state.basic_click_count += 1
+
+    # Changes of formValues are captured but do not update an extra counter
+    def _handle_basic_change() -> None:
+        pass
+
+    basic_result = basic_component(
+        key="basic_component_1",
+        data={"label": "Some data from python"},
+        on_formValues_change=_handle_basic_change,
+        on_clicked_change=_handle_basic_click,
+        default=_BASIC_DEFAULT,
+    )
+
+    st.write(f"Result: {basic_result}")
+    st.text(f"session_state: {st.session_state.get('basic_component_1')}")
+    st.write(f"Click count: {st.session_state.basic_click_count}")
+
+
+st.divider()
+with st.container():
     st.subheader("Errors (intentionally broken components)")
 
     # Incorrect JS (no default export)
