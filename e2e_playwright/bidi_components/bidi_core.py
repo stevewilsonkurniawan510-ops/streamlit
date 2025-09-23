@@ -220,32 +220,30 @@ def ctx_component(
     )
 
 
-st.subheader("Stateful")
+with st.container():
+    st.subheader("Stateful")
 
-if "stateful_range_change_count" not in st.session_state:
-    st.session_state.stateful_range_change_count = 0
-if "stateful_text_change_count" not in st.session_state:
-    st.session_state.stateful_text_change_count = 0
+    if "stateful_range_change_count" not in st.session_state:
+        st.session_state.stateful_range_change_count = 0
+    if "stateful_text_change_count" not in st.session_state:
+        st.session_state.stateful_text_change_count = 0
 
+    def _stateful_handle_range_change() -> None:
+        st.session_state.stateful_range_change_count += 1
 
-def _stateful_handle_range_change() -> None:
-    st.session_state.stateful_range_change_count += 1
+    def _stateful_handle_text_change() -> None:
+        st.session_state.stateful_text_change_count += 1
 
+    stateful_result = stateful_component(
+        key="stateful_component_1",
+        on_range_change=_stateful_handle_range_change,
+        on_text_change=_stateful_handle_text_change,
+    )
 
-def _stateful_handle_text_change() -> None:
-    st.session_state.stateful_text_change_count += 1
-
-
-stateful_result = stateful_component(
-    key="stateful_component_1",
-    on_range_change=_stateful_handle_range_change,
-    on_text_change=_stateful_handle_text_change,
-)
-
-st.write(f"Result: {stateful_result}")
-st.text(f"session_state: {st.session_state.get('stateful_component_1')}")
-st.write(f"Range change count: {st.session_state.stateful_range_change_count}")
-st.write(f"Text change count: {st.session_state.stateful_text_change_count}")
+    st.write(f"Result: {stateful_result}")
+    st.text(f"session_state: {st.session_state.get('stateful_component_1')}")
+    st.write(f"Range change count: {st.session_state.stateful_range_change_count}")
+    st.write(f"Text change count: {st.session_state.stateful_text_change_count}")
 
 
 st.divider()
