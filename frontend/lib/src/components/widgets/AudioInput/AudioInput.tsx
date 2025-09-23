@@ -30,6 +30,7 @@ import RecordPlugin from "wavesurfer.js/dist/plugins/record"
 
 import { AudioInput as AudioInputProto } from "@streamlit/protobuf"
 
+import { encodeToWav, formatTime } from "~lib/components/audio"
 import Toolbar, { ToolbarAction } from "~lib/components/shared/Toolbar"
 import { Placement } from "~lib/components/shared/Tooltip"
 import TooltipIcon from "~lib/components/shared/TooltipIcon"
@@ -59,8 +60,6 @@ import {
   STARTING_TIME_STRING,
   WAVEFORM_PADDING,
 } from "./constants"
-import convertAudioToWav from "./convertAudioToWav"
-import formatTime from "./formatTime"
 import NoMicPermissions from "./NoMicPermissions"
 import Placeholder from "./Placeholder"
 import {
@@ -165,10 +164,7 @@ const AudioInput: React.FC<Props> = ({
         if (blob.type === "audio/wav") {
           wavBlob = blob
         } else {
-          wavBlob = await convertAudioToWav(
-            blob,
-            targetSampleRate || undefined
-          )
+          wavBlob = await encodeToWav(blob, targetSampleRate || undefined)
         }
 
         if (!wavBlob) {

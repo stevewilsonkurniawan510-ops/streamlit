@@ -16,9 +16,9 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import convertFileToWav from "./convertAudioToWav"
+import encodeToWav from "./encodeToWav"
 
-describe("convertAudioToWav", () => {
+describe("encodeToWav", () => {
   let originalAudioContext: typeof AudioContext | undefined
   let originalOfflineAudioContext: typeof OfflineAudioContext | undefined
 
@@ -52,13 +52,13 @@ describe("convertAudioToWav", () => {
 
   describe("error handling", () => {
     it("should return undefined for null blob", async () => {
-      const result = await convertFileToWav(null as unknown as Blob)
+      const result = await encodeToWav(null as unknown as Blob)
       expect(result).toBeUndefined()
     })
 
     it("should return undefined for empty blob", async () => {
       const emptyBlob = new Blob([])
-      const result = await convertFileToWav(emptyBlob)
+      const result = await encodeToWav(emptyBlob)
       expect(result).toBeUndefined()
     })
 
@@ -68,7 +68,7 @@ describe("convertAudioToWav", () => {
         .AudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob)
+      const result = await encodeToWav(blob)
       expect(result).toBeUndefined()
     })
 
@@ -85,7 +85,7 @@ describe("convertAudioToWav", () => {
       }))
       window.AudioContext = MockAudioContext as unknown as typeof AudioContext
 
-      const result = await convertFileToWav(mockBlob)
+      const result = await encodeToWav(mockBlob)
       expect(result).toBeUndefined()
       expect(mockClose).toHaveBeenCalled()
     })
@@ -104,7 +104,7 @@ describe("convertAudioToWav", () => {
 
       const blob = createMockBlob()
 
-      const result = await convertFileToWav(blob)
+      const result = await encodeToWav(blob)
 
       expect(result).toBeUndefined()
       expect(mockClose).toHaveBeenCalled()
@@ -143,7 +143,7 @@ describe("convertAudioToWav", () => {
       window.AudioContext = MockAudioContext as unknown as typeof AudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob, 44100)
+      const result = await encodeToWav(blob, 44100)
 
       expect(result).toBeInstanceOf(Blob)
       expect(result?.type).toBe("audio/wav")
@@ -215,7 +215,7 @@ describe("convertAudioToWav", () => {
           MockOfflineAudioContext as unknown as typeof OfflineAudioContext
 
         const blob = createMockBlob()
-        const result = await convertFileToWav(blob, targetSampleRate)
+        const result = await encodeToWav(blob, targetSampleRate)
 
         expect(result).toBeInstanceOf(Blob)
         expect(result?.type).toBe("audio/wav")
@@ -245,7 +245,7 @@ describe("convertAudioToWav", () => {
       ).OfflineAudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob, 44100)
+      const result = await encodeToWav(blob, 44100)
 
       expect(result).toBeInstanceOf(Blob)
       expect(result?.type).toBe("audio/wav")
@@ -281,7 +281,7 @@ describe("convertAudioToWav", () => {
         MockOfflineAudioContext as unknown as typeof OfflineAudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob, 44100)
+      const result = await encodeToWav(blob, 44100)
 
       // Should fallback to original audio
       expect(result).toBeInstanceOf(Blob)
@@ -312,7 +312,7 @@ describe("convertAudioToWav", () => {
       window.AudioContext = MockAudioContext as unknown as typeof AudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob)
+      const result = await encodeToWav(blob)
 
       expect(result).toBeInstanceOf(Blob)
       expect(result?.type).toBe("audio/wav")
@@ -342,7 +342,7 @@ describe("convertAudioToWav", () => {
       window.AudioContext = MockAudioContext as unknown as typeof AudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob)
+      const result = await encodeToWav(blob)
 
       expect(result).toBeInstanceOf(Blob)
       expect(result?.type).toBe("audio/wav")
@@ -370,7 +370,7 @@ describe("convertAudioToWav", () => {
       window.AudioContext = MockAudioContext as unknown as typeof AudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob)
+      const result = await encodeToWav(blob)
 
       expect(result).toBeInstanceOf(Blob)
       expect(result?.type).toBe("audio/wav")
@@ -397,7 +397,7 @@ describe("convertAudioToWav", () => {
       window.AudioContext = MockAudioContext as unknown as typeof AudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob)
+      const result = await encodeToWav(blob)
 
       expect(result).toBeInstanceOf(Blob)
       expect(result?.type).toBe("audio/wav")
@@ -434,7 +434,7 @@ describe("convertAudioToWav", () => {
       window.AudioContext = MockAudioContext as unknown as typeof AudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob)
+      const result = await encodeToWav(blob)
 
       expect(result).toBeInstanceOf(Blob)
       expect(result?.type).toBe("audio/wav")
@@ -470,7 +470,7 @@ describe("convertAudioToWav", () => {
       window.AudioContext = MockAudioContext as unknown as typeof AudioContext
 
       const blob = createMockBlob()
-      const result = await convertFileToWav(blob)
+      const result = await encodeToWav(blob)
 
       expect(result).toBeInstanceOf(Blob)
       expect(result?.type).toBe("audio/wav")
