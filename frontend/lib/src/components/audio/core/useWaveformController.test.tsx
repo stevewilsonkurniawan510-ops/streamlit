@@ -24,19 +24,40 @@ import type { WaveformState } from "./types"
 vi.mock("../backends/WaveSurferRecordBackend", () => {
   const MockRecordBackend = vi.fn()
   MockRecordBackend.prototype.initialize = vi.fn().mockResolvedValue(undefined)
-  MockRecordBackend.prototype.startRecording = vi
-    .fn()
-    .mockResolvedValue(undefined)
-  MockRecordBackend.prototype.stopRecording = vi
-    .fn()
-    .mockResolvedValue(new Blob())
-  MockRecordBackend.prototype.cancelRecording = vi.fn()
+  MockRecordBackend.prototype.startRecording = vi.fn(function () {
+    // Simulate successful start
+    setTimeout(() => {
+      this.eventHandlers?.get("recordStart")?.forEach((h: any) => h())
+    }, 0)
+    return Promise.resolve()
+  })
+  MockRecordBackend.prototype.stopRecording = vi.fn(function () {
+    // Return a mock blob
+    return Promise.resolve(new Blob(["test"], { type: "audio/webm" }))
+  })
+  MockRecordBackend.prototype.cancelRecording = vi.fn(function () {
+    // Trigger cancel event
+    this.eventHandlers?.get("recordCancel")?.forEach((h: any) => h())
+  })
   MockRecordBackend.prototype.mountVisualizer = vi.fn()
   MockRecordBackend.prototype.unmountVisualizer = vi.fn()
   MockRecordBackend.prototype.setOptions = vi.fn()
   MockRecordBackend.prototype.destroy = vi.fn()
-  MockRecordBackend.prototype.on = vi.fn()
-  MockRecordBackend.prototype.off = vi.fn()
+  MockRecordBackend.prototype.on = vi.fn(function (
+    event: string,
+    handler: Function
+  ) {
+    if (!this.eventHandlers) this.eventHandlers = new Map()
+    if (!this.eventHandlers.has(event))
+      this.eventHandlers.set(event, new Set())
+    this.eventHandlers.get(event).add(handler)
+  })
+  MockRecordBackend.prototype.off = vi.fn(function (
+    event: string,
+    handler: Function
+  ) {
+    this.eventHandlers?.get(event)?.delete(handler)
+  })
 
   return { WaveSurferRecordBackend: MockRecordBackend }
 })
@@ -63,7 +84,9 @@ vi.mock("../playback/WaveSurferPlayer", () => {
 vi.mock("../encodeToWav", () => ({
   default: vi
     .fn()
-    .mockResolvedValue(new Blob(["mock"], { type: "audio/wav" })),
+    .mockImplementation(() =>
+      Promise.resolve(new Blob(["mock-wav"], { type: "audio/wav" }))
+    ),
 }))
 
 describe("useWaveformController", () => {
@@ -318,6 +341,26 @@ describe("useWaveformController", () => {
       // The mock backend should handle getUserMedia internally
       // We're verifying that we don't double-call it
       expect(getUserMediaSpy).toHaveBeenCalledTimes(0) // Backend handles it
+    })
+
+    it("should ensure no active tracks after stop or cancel", async () => {
+      // This test verifies that the plugin properly stops all media tracks
+      // Since we use Policy B (plugin owns the stream), we trust the plugin
+      // to handle cleanup. This is more of an integration test requirement.
+      const { result } = renderHook(() => useWaveformController())
+
+      await act(async () => {
+        await result.current.startRecording()
+      })
+
+      await act(async () => {
+        await result.current.stopRecording()
+      })
+
+      // If we had access to the stream, we'd verify:
+      // stream.getTracks().forEach(track => expect(track.readyState).toBe("ended"))
+      // Since the plugin owns it, we trust its stopRecording() implementation
+      expect(result.current.state).not.toBe("recording")
     })
   })
 

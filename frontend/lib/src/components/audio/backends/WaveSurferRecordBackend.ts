@@ -101,10 +101,9 @@ export class WaveSurferRecordBackend implements RecordingBackend {
       this.emit("progress", time * 1000) // Convert to ms
     })
 
-    this.recordPlugin.on("record-end", (blob: Blob) => {
-      this.recordingBlob = blob
-      this.emit("recordEnd", blob)
-    })
+    // NOTE: No persistent "record-end" listener here to avoid race conditions
+    // with the scoped handler in stopRecording(). The scoped handler will
+    // properly check cancelRequested flag.
 
     this.isInitialized = true
   }
@@ -143,8 +142,9 @@ export class WaveSurferRecordBackend implements RecordingBackend {
       await this.recordPlugin.startRecording(audioConstraints)
       // Only emit after successful start
       this.emit("recordStart")
-      // Note: The plugin handles the stream internally
-      // We don't have direct access to it for cleanup
+      // Media stream policy: The RecordPlugin owns and manages the MediaStream.
+      // It acquires the stream internally and stops all tracks when stopRecording() is called.
+      // We don't maintain a reference to avoid dual ownership issues.
     } catch (error) {
       this.emit("error", error)
       throw error
@@ -163,8 +163,8 @@ export class WaveSurferRecordBackend implements RecordingBackend {
       }
 
       const handleRecordEnd = (blob: Blob): void => {
-        // Use the off helper for compatibility
-        this.off(this.recordPlugin, "record-end", handleRecordEnd)
+        // Use the detachEvent helper for compatibility
+        this.detachEvent(this.recordPlugin, "record-end", handleRecordEnd)
         this.stopMediaStream()
 
         // Check if this was actually a cancel
@@ -185,8 +185,8 @@ export class WaveSurferRecordBackend implements RecordingBackend {
         resolve(blob)
       }
 
-      // Use the on helper for compatibility
-      this.on(this.recordPlugin, "record-end", handleRecordEnd)
+      // Use the attachEvent helper for compatibility
+      this.attachEvent(this.recordPlugin, "record-end", handleRecordEnd)
       this.recordPlugin.stopRecording()
 
       // Apply pending container change if any
@@ -373,14 +373,20 @@ export class WaveSurferRecordBackend implements RecordingBackend {
   }
 
   private stopMediaStream(): void {
+    // Note: mediaStream is kept for potential future use if we switch to Policy A
+    // (acquiring stream ourselves). Currently the plugin owns the stream (Policy B).
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop())
       this.mediaStream = null
     }
   }
 
-  // Event helper for cross-version compatibility
-  private on(emitter: any, evt: string, handler: Function): void {
+  // Event helper for cross-version compatibility with WaveSurfer
+  private attachEvent(
+    emitter: any,
+    evt: string,
+    handler: (...args: any[]) => void
+  ): void {
     if (typeof emitter?.on === "function") {
       emitter.on(evt, handler)
     } else if (typeof emitter?.addEventListener === "function") {
@@ -388,7 +394,11 @@ export class WaveSurferRecordBackend implements RecordingBackend {
     }
   }
 
-  private off(emitter: any, evt: string, handler: Function): void {
+  private detachEvent(
+    emitter: any,
+    evt: string,
+    handler: (...args: any[]) => void
+  ): void {
     if (typeof emitter?.un === "function") {
       emitter.un(evt, handler)
     } else if (typeof emitter?.off === "function") {
