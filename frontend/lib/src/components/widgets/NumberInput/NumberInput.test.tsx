@@ -949,6 +949,138 @@ describe("NumberInput widget", () => {
       })
     })
 
+    describe("Floating point precision", () => {
+      it("handles precise decimal arithmetic with step buttons", async () => {
+        const user = userEvent.setup()
+        const props = getFloatProps({
+          default: 0.1,
+          step: 0.01,
+          min: 0,
+          max: 1,
+        })
+        render(<NumberInput {...props} />)
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const input = screen.getByTestId(
+          "stNumberInputField"
+        ) as HTMLInputElement
+        const stepUpButton = screen.getByTestId("stNumberInputStepUp")
+
+        // Click increment twice: 0.1 + 0.01 + 0.01 = 0.12
+        await user.click(stepUpButton)
+        await user.click(stepUpButton)
+
+        // Should be exactly 0.12, not 0.11999999999999998
+        expect(input).toHaveValue(0.12)
+        expect(input.value).toBe("0.12")
+      })
+
+      it("handles precise decimal arithmetic with arrow keys", async () => {
+        const user = userEvent.setup()
+        const props = getFloatProps({
+          default: 0.1,
+          step: 0.01,
+          min: 0,
+          max: 1,
+        })
+        render(<NumberInput {...props} />)
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const input = screen.getByTestId(
+          "stNumberInputField"
+        ) as HTMLInputElement
+        // Use arrow up twice: 0.1 + 0.01 + 0.01 = 0.12
+        await user.type(input, "{arrowup}{arrowup}")
+
+        // Should be exactly 0.12, not 0.11999999999999998
+        expect(input).toHaveValue(0.12)
+        expect(input.value).toBe("0.12")
+      })
+
+      it("handles precise decimal subtraction to avoid floating point errors", async () => {
+        const user = userEvent.setup()
+        const props = getFloatProps({
+          default: 0.3,
+          step: 0.1,
+          min: 0,
+          max: 1,
+        })
+        render(<NumberInput {...props} />)
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const input = screen.getByTestId(
+          "stNumberInputField"
+        ) as HTMLInputElement
+        const stepDownButton = screen.getByTestId("stNumberInputStepDown")
+
+        // Click decrement: 0.3 - 0.1 = 0.2
+        await user.click(stepDownButton)
+
+        // Should be exactly 0.2, not 0.19999999999999998
+        expect(input).toHaveValue(0.2)
+        expect(input.value).toBe("0.2")
+      })
+
+      it.each([
+        { step: 0.1, iterations: 3, expected: 0.3 },
+        { step: 0.01, iterations: 5, expected: 0.05 },
+        { step: 0.001, iterations: 7, expected: 0.007 },
+      ])(
+        "maintains precision with step $step over $iterations iterations",
+        async ({ step, iterations, expected }) => {
+          const user = userEvent.setup()
+          const props = getFloatProps({
+            default: 0.0,
+            step,
+            min: 0,
+            max: 1,
+          })
+          render(<NumberInput {...props} />)
+
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+          const input = screen.getByTestId(
+            "stNumberInputField"
+          ) as HTMLInputElement
+          const stepUpButton = screen.getByTestId("stNumberInputStepUp")
+
+          // Click increment multiple times
+          for (let i = 0; i < iterations; i++) {
+            await user.click(stepUpButton)
+          }
+
+          // Should be exactly the expected value
+          expect(input).toHaveValue(expected)
+          expect(Number(input.value)).toBe(expected)
+        }
+      )
+
+      it("handles mixed increment and decrement operations precisely", async () => {
+        const user = userEvent.setup()
+        const props = getFloatProps({
+          default: 0.5,
+          step: 0.01,
+          min: 0,
+          max: 1,
+        })
+        render(<NumberInput {...props} />)
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const input = screen.getByTestId(
+          "stNumberInputField"
+        ) as HTMLInputElement
+        const stepUpButton = screen.getByTestId("stNumberInputStepUp")
+        const stepDownButton = screen.getByTestId("stNumberInputStepDown")
+
+        // Complex sequence: +0.01, +0.01, -0.01 = 0.5 + 0.01 = 0.51
+        await user.click(stepUpButton) // 0.51
+        await user.click(stepUpButton) // 0.52
+        await user.click(stepDownButton) // 0.51
+
+        expect(input).toHaveValue(0.51)
+        expect(input.value).toBe("0.51")
+      })
+    })
+
     describe("onChange formatting", () => {
       it("sets formatted value to null when input is empty", async () => {
         const user = userEvent.setup()

@@ -305,19 +305,36 @@ const NumberInput: React.FC<Props> = ({
     }
   }
 
+  // Helper function to handle precise step arithmetic
+  const preciseStepArithmetic = useCallback(
+    (currentValue: number, operation: "add" | "subtract"): number => {
+      // Scale-based arithmetic to avoid floating point errors
+      const stepStr = step.toString()
+      const decimalPlaces = (stepStr.split(".")[1] || "").length
+      const scale = Math.pow(10, decimalPlaces)
+
+      return operation === "add"
+        ? (Math.round(currentValue * scale) + Math.round(step * scale)) / scale
+        : (Math.round(currentValue * scale) - Math.round(step * scale)) / scale
+    },
+    [step]
+  )
+
   const increment = useCallback(() => {
     if (canInc) {
       setDirty(true)
-      commitValue({ value: (value ?? min) + step, source: { fromUi: true } })
+      const newValue = preciseStepArithmetic(value ?? min, "add")
+      commitValue({ value: newValue, source: { fromUi: true } })
     }
-  }, [value, min, step, canInc])
+  }, [value, min, step, canInc, preciseStepArithmetic])
 
   const decrement = useCallback(() => {
     if (canDec) {
       setDirty(true)
-      commitValue({ value: (value ?? max) - step, source: { fromUi: true } })
+      const newValue = preciseStepArithmetic(value ?? max, "subtract")
+      commitValue({ value: newValue, source: { fromUi: true } })
     }
-  }, [value, max, step, canDec])
+  }, [value, max, step, canDec, preciseStepArithmetic])
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
