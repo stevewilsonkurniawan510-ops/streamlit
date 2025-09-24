@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+// Legacy exports (to be removed after full migration)
 export { useAudioRecorder } from "./useAudioRecorder"
 export type {
   UseAudioRecorderOptions,
@@ -22,3 +23,16 @@ export type {
 
 export { default as encodeToWav } from "./encodeToWav"
 export { default as formatTime } from "./formatTime"
+
+// New headless controller architecture
+export { useWaveformController } from "./core/useWaveformController"
+export { default as WaveformSurface } from "./ui/WaveformSurface"
+export type {
+  WaveformController,
+  WaveformControllerCapabilities,
+  WaveformControllerOptions,
+  WaveformEventMap,
+  WaveformErrorCode,
+  WaveformState,
+} from "./core/types"
+export type { WaveformSurfaceProps } from "./ui/WaveformSurface"

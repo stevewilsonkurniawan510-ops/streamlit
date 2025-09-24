@@ -24,24 +24,23 @@ import React, {
 } from "react"
 
 import { Delete, FileDownload } from "@emotion-icons/material-outlined"
-import isEqual from "lodash/isEqual"
-import WaveSurfer from "wavesurfer.js"
-import RecordPlugin from "wavesurfer.js/dist/plugins/record"
 
 import { AudioInput as AudioInputProto } from "@streamlit/protobuf"
 
-import { encodeToWav, formatTime } from "~lib/components/audio"
+import {
+  useWaveformController,
+  type WaveformState,
+  WaveformSurface,
+} from "~lib/components/audio"
 import Toolbar, { ToolbarAction } from "~lib/components/shared/Toolbar"
 import { Placement } from "~lib/components/shared/Tooltip"
 import TooltipIcon from "~lib/components/shared/TooltipIcon"
 import { WidgetLabel } from "~lib/components/widgets/BaseWidget"
 import { FormClearHelper } from "~lib/components/widgets/Form"
 import { FileUploadClient } from "~lib/FileUploadClient"
-import useDownloadUrl from "~lib/hooks/useDownloadUrl"
 import { useEmotionTheme } from "~lib/hooks/useEmotionTheme"
 import useWidgetManagerElementState from "~lib/hooks/useWidgetManagerElementState"
-import { blend, convertRemToPx } from "~lib/theme/utils"
-import { usePrevious } from "~lib/util/Hooks"
+import { blend } from "~lib/theme/utils"
 import { uploadFiles } from "~lib/util/uploadFiles"
 import {
   isNullOrUndefined,
@@ -52,14 +51,7 @@ import { WidgetStateManager } from "~lib/WidgetStateManager"
 
 import AudioInputActionButtons from "./AudioInputActionButtons"
 import AudioInputErrorState from "./AudioInputErrorState"
-import {
-  BAR_GAP,
-  BAR_RADIUS,
-  BAR_WIDTH,
-  CURSOR_WIDTH,
-  STARTING_TIME_STRING,
-  WAVEFORM_PADDING,
-} from "./constants"
+import { STARTING_TIME_STRING } from "./constants"
 import NoMicPermissions from "./NoMicPermissions"
 import Placeholder from "./Placeholder"
 import {
@@ -70,6 +62,7 @@ import {
   StyledWaveSurferDiv,
   StyledWidgetLabelHelp,
 } from "./styled-components"
+
 export interface Props {
   element: AudioInputProto
   uploadClient: FileUploadClient
@@ -86,11 +79,8 @@ const AudioInput: React.FC<Props> = ({
   disabled,
 }): ReactElement => {
   const theme = useEmotionTheme()
-  const previousTheme = usePrevious(theme)
-  const [wavesurfer, setWavesurfer] = useState<WaveSurfer | null>(null)
-  const waveSurferRef = useRef<HTMLDivElement | null>(null)
-  // Track current blob URL for cleanup
-  const currentBlobUrlRef = useRef<string | null>(null)
+
+  // State for URLs and file management
   const [deleteFileUrl, setDeleteFileUrl] = useWidgetManagerElementState<
     string | null
   >({
@@ -109,40 +99,29 @@ const AudioInput: React.FC<Props> = ({
     defaultValue: null,
   })
 
-  const [, setRerender] = useState(0)
-  const forceRerender = useCallback((): void => {
-    setRerender(prev => prev + 1)
-  }, [])
-  const [progressTime, setProgressTime] = useState(STARTING_TIME_STRING)
-
-  const [recordingTime, setRecordingTime] =
-    useWidgetManagerElementState<string>({
-      widgetMgr,
-      id: element.id,
-      formId: element.formId,
-      key: "recordingTime",
-      defaultValue: STARTING_TIME_STRING,
-    })
-
-  const [shouldUpdatePlaybackTime, setShouldUpdatePlaybackTime] =
-    useState(false)
+  // Local state
   const [hasNoMicPermissions, setHasNoMicPermissions] = useState(false)
-  const [hasRequestedMicPermissions, setHasRequestedMicPermissions] =
-    useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isError, setIsError] = useState(false)
+  const [displayTime, setDisplayTime] = useState(STARTING_TIME_STRING)
+  const [waveformState, setWaveformState] = useState<WaveformState>("idle")
 
+  const currentBlobRef = useRef<Blob | null>(null)
+  const uploadAbortControllerRef = useRef<AbortController | null>(null)
   const widgetId = element.id
   const widgetFormId = element.formId
+  const targetSampleRate = element.sampleRate || 16000
 
-  const targetSampleRate = element.sampleRate || null
+  // Use the new headless controller
+  const controller = useWaveformController({
+    sampleRate: targetSampleRate,
+    waveformHeight: 50,
+    waveformColor: blend(theme.colors.fadedText40, theme.colors.secondaryBg),
+    progressColor: theme.colors.bodyText,
+    recordingColor: theme.colors.primary,
+  })
 
-  const recordPluginRef = useRef<RecordPlugin | null>(null)
-  const recordPluginHandlersRef = useRef<{
-    handleRecordProgress?: (time: number) => void
-  }>({})
-  const uploadAbortControllerRef = useRef<AbortController | null>(null)
-
+  // Upload handling
   const transcodeAndUploadFile = useCallback(
     async (blob: Blob) => {
       // Cancel any previous upload
@@ -156,23 +135,8 @@ const AudioInput: React.FC<Props> = ({
 
       try {
         setIsUploading(true)
-        if (notNullOrUndefined(widgetFormId))
+        if (notNullOrUndefined(widgetFormId)) {
           widgetMgr.setFormsWithUploadsInProgress(new Set([widgetFormId]))
-
-        let wavBlob: Blob | undefined = undefined
-
-        if (blob.type === "audio/wav") {
-          wavBlob = blob
-        } else {
-          wavBlob = await encodeToWav(blob, targetSampleRate || undefined)
-        }
-
-        if (!wavBlob) {
-          setIsError(true)
-          setIsUploading(false)
-          if (notNullOrUndefined(widgetFormId))
-            widgetMgr.setFormsWithUploadsInProgress(new Set())
-          return
         }
 
         // Check if aborted before continuing
@@ -180,52 +144,19 @@ const AudioInput: React.FC<Props> = ({
           return
         }
 
-        let blobUrl: string
-        try {
-          blobUrl = URL.createObjectURL(wavBlob)
-          // Track the new blob URL and revoke the old one if it exists
-          if (
-            currentBlobUrlRef.current &&
-            currentBlobUrlRef.current !== blobUrl
-          ) {
-            URL.revokeObjectURL(currentBlobUrlRef.current)
-          }
-          currentBlobUrlRef.current = blobUrl
-        } catch {
-          setIsError(true)
-          setIsUploading(false)
-          if (notNullOrUndefined(widgetFormId))
-            widgetMgr.setFormsWithUploadsInProgress(new Set())
-          return
-        }
-
-        // Check if aborted before updating state
-        if (abortController.signal.aborted) {
-          URL.revokeObjectURL(blobUrl)
-          currentBlobUrlRef.current = null
-          return
-        }
-
+        // Create blob URL for local playback
+        const blobUrl = URL.createObjectURL(blob)
         setRecordingUrl(blobUrl)
 
-        if (wavesurfer) {
-          void wavesurfer.load(blobUrl)
-          wavesurfer.setOptions({
-            interact: true,
-            waveColor: blend(
-              theme.colors.fadedText40,
-              theme.colors.secondaryBg
-            ),
-            progressColor: theme.colors.bodyText,
-          })
-        }
+        // Load into controller for playback
+        await controller.load(blob)
 
         const timestamp = new Date()
           .toISOString()
           .slice(0, 16)
           .replace(/:/g, "-")
-        const file = new File([wavBlob], `${timestamp}_audio.wav`, {
-          type: wavBlob.type,
+        const file = new File([blob], `${timestamp}_audio.wav`, {
+          type: blob.type,
         })
 
         try {
@@ -258,8 +189,9 @@ const AudioInput: React.FC<Props> = ({
             setIsError(true)
           }
         } finally {
-          if (notNullOrUndefined(widgetFormId))
+          if (notNullOrUndefined(widgetFormId)) {
             widgetMgr.setFormsWithUploadsInProgress(new Set())
+          }
           if (!abortController.signal.aborted) {
             setIsUploading(false)
           }
@@ -269,26 +201,75 @@ const AudioInput: React.FC<Props> = ({
           setIsError(true)
           setIsUploading(false)
         }
-        if (notNullOrUndefined(widgetFormId))
+        if (notNullOrUndefined(widgetFormId)) {
           widgetMgr.setFormsWithUploadsInProgress(new Set())
+        }
       }
     },
     [
+      controller,
       uploadClient,
       widgetMgr,
-      wavesurfer,
       widgetId,
       widgetFormId,
       fragmentId,
       setDeleteFileUrl,
-      targetSampleRate,
       setRecordingUrl,
-      theme.colors.fadedText40,
-      theme.colors.secondaryBg,
-      theme.colors.bodyText,
     ]
   )
 
+  // Subscribe to controller events
+  useEffect(() => {
+    const handleStateChange = (data: {
+      prev: WaveformState
+      next: WaveformState
+    }): void => {
+      setWaveformState(data.next)
+
+      // Handle error states
+      if (data.next === "error") {
+        setIsError(true)
+      }
+    }
+
+    const handleError = (_data: { message: string; error?: Error }): void => {
+      setIsError(true)
+    }
+
+    const handlePermissionDenied = (_data: Record<string, never>): void => {
+      setHasNoMicPermissions(true)
+    }
+
+    const handleReady = async (data: { wavBlob: Blob }): Promise<void> => {
+      currentBlobRef.current = data.wavBlob
+      await transcodeAndUploadFile(data.wavBlob)
+    }
+
+    const handleTimeUpdate = (data: { currentTime: number }): void => {
+      const ms = data.currentTime
+      const seconds = Math.floor(ms / 1000)
+      const minutes = Math.floor(seconds / 60)
+      const displaySec = (seconds % 60).toString().padStart(2, "0")
+      const displayMin = minutes.toString().padStart(2, "0")
+      setDisplayTime(`${displayMin}:${displaySec}`)
+    }
+
+    controller.on("state", handleStateChange)
+    controller.on("error", handleError)
+    controller.on("permissionDenied", handlePermissionDenied)
+    controller.on("ready", data => void handleReady(data))
+    controller.on("timeupdate", handleTimeUpdate)
+
+    return () => {
+      controller.off("state", handleStateChange)
+      controller.off("error", handleError)
+      controller.off("permissionDenied", handlePermissionDenied)
+      controller.off("ready", data => void handleReady(data))
+      controller.off("timeupdate", handleTimeUpdate)
+    }
+  }, [controller, transcodeAndUploadFile])
+
+  // Clear handling
   const handleClear = useCallback(
     async ({
       updateWidgetManager,
@@ -297,25 +278,17 @@ const AudioInput: React.FC<Props> = ({
       updateWidgetManager: boolean
       deleteFile: boolean
     }): Promise<void> => {
-      if (isNullOrUndefined(wavesurfer)) {
-        return
-      }
-
-      const urlToRevoke = recordingUrl
-
-      // Clean up the blob URL when clearing
-      if (urlToRevoke && currentBlobUrlRef.current === urlToRevoke) {
-        URL.revokeObjectURL(urlToRevoke)
-        currentBlobUrlRef.current = null
+      // Clean up blob URL
+      if (recordingUrl) {
+        URL.revokeObjectURL(recordingUrl)
       }
 
       setRecordingUrl(null)
       setDeleteFileUrl(null)
-      setProgressTime(STARTING_TIME_STRING)
-      setRecordingTime(STARTING_TIME_STRING)
-      setShouldUpdatePlaybackTime(false)
+      setDisplayTime(STARTING_TIME_STRING)
+      currentBlobRef.current = null
 
-      wavesurfer.empty()
+      controller.clear()
 
       if (updateWidgetManager) {
         widgetMgr.setFileUploaderStateValue(
@@ -333,25 +306,21 @@ const AudioInput: React.FC<Props> = ({
           // Silently handle deletion errors
         }
       }
-
-      if (notNullOrUndefined(urlToRevoke)) {
-        URL.revokeObjectURL(urlToRevoke)
-      }
     },
     [
       deleteFileUrl,
       recordingUrl,
       uploadClient,
-      wavesurfer,
       element,
       widgetMgr,
       fragmentId,
-      setRecordingTime,
       setDeleteFileUrl,
       setRecordingUrl,
+      controller,
     ]
   )
 
+  // Form clear handling
   useEffect(() => {
     if (isNullOrUndefined(widgetFormId)) return
 
@@ -363,294 +332,55 @@ const AudioInput: React.FC<Props> = ({
     return () => formClearHelper.disconnect()
   }, [widgetFormId, handleClear, widgetMgr])
 
-  const initializeWaveSurfer = useCallback(() => {
-    if (waveSurferRef.current === null) return
-
-    const ws = WaveSurfer.create({
-      container: waveSurferRef.current,
-      waveColor: recordingUrl
-        ? blend(theme.colors.fadedText40, theme.colors.secondaryBg)
-        : theme.colors.primary,
-      progressColor: theme.colors.bodyText,
-      height:
-        convertRemToPx(theme.sizes.largestElementHeight) -
-        2 * WAVEFORM_PADDING,
-      barWidth: BAR_WIDTH,
-      barGap: BAR_GAP,
-      barRadius: BAR_RADIUS,
-      cursorWidth: CURSOR_WIDTH,
-      interact: true,
-    })
-
-    // Store event handlers for cleanup
-    const handleTimeUpdate = (time: number): void => {
-      setProgressTime(formatTime(time * 1000)) // get from seconds to milliseconds
-    }
-
-    const handlePause = (): void => {
-      forceRerender()
-    }
-
-    ws.on("timeupdate", handleTimeUpdate)
-    ws.on("pause", handlePause)
-
-    setWavesurfer(ws)
-
-    if (recordingUrl) {
-      void ws.load(recordingUrl)
-      ws.setOptions({
-        interact: true,
-      })
-    }
-
-    const recordOptions: Record<string, unknown> = {
-      renderRecordedAudio: false,
-      scrollingWaveform: false,
-      mimeType: "audio/webm",
-    }
-
-    try {
-      const record = ws.registerPlugin(RecordPlugin.create(recordOptions))
-      recordPluginRef.current = record
-
-      const handleRecordProgress = (time: number): void => {
-        setRecordingTime(formatTime(time))
-      }
-
-      record.on("record-progress", handleRecordProgress)
-
-      recordPluginHandlersRef.current = {
-        handleRecordProgress,
-      }
-    } catch (err) {
-      if (
-        err instanceof Error &&
-        (err.name === "NotAllowedError" ||
-          err.name === "PermissionDeniedError")
-      ) {
-        setHasNoMicPermissions(true)
-      }
-    }
-
-    return () => {
-      if (recordPluginRef.current) {
-        if (recordPluginRef.current.isRecording()) {
-          recordPluginRef.current.stopRecording()
-        }
-        const handlers = recordPluginHandlersRef.current
-        if (handlers.handleRecordProgress) {
-          recordPluginRef.current.un(
-            "record-progress",
-            handlers.handleRecordProgress
-          )
-        }
-        recordPluginRef.current.destroy()
-        recordPluginRef.current = null
-        recordPluginHandlersRef.current = {}
-      }
-      if (ws) {
-        // Remove WaveSurfer event listeners before destroying
-        ws.un("timeupdate", handleTimeUpdate)
-        ws.un("pause", handlePause)
-        ws.destroy()
-      }
-    }
-  }, [
-    theme,
-    setProgressTime,
-    forceRerender,
-    recordingUrl,
-    setRecordingTime,
-    setHasNoMicPermissions,
-  ])
-
-  useEffect(() => {
-    const cleanup = initializeWaveSurfer()
-    return cleanup
-  }, [initializeWaveSurfer])
-
-  // Cleanup: abort any ongoing uploads on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Cancel any ongoing upload
       if (uploadAbortControllerRef.current) {
         uploadAbortControllerRef.current.abort()
         uploadAbortControllerRef.current = null
       }
-    }
-  }, [])
-
-  // Note: We don't revoke blob URLs on unmount because they need to persist
-  // across component remounts. They'll be cleaned up when:
-  // 1. User records a new audio (old one is revoked)
-  // 2. User explicitly clears the recording
-  // 3. Page unloads (browser handles this)
-
-  useEffect(() => {
-    if (!isEqual(previousTheme, theme)) {
-      wavesurfer?.setOptions({
-        waveColor: recordingUrl
-          ? blend(theme.colors.fadedText40, theme.colors.secondaryBg)
-          : theme.colors.primary,
-        progressColor: theme.colors.bodyText,
-        interact: true,
-      })
-    }
-  }, [theme, previousTheme, recordingUrl, wavesurfer])
-
-  const onClickPlayPause = useCallback(() => {
-    if (!wavesurfer) return
-
-    const handlePlayPause = async (): Promise<void> => {
-      try {
-        await wavesurfer.playPause()
-      } catch {
-        setIsError(true)
+      // Clean up blob URL if any
+      if (recordingUrl) {
+        URL.revokeObjectURL(recordingUrl)
       }
-      // This is because we want the time to be the duration of the audio when they stop recording,
-      // but once they start playing it, we want it to be the current time. So, once they start playing it
-      // we'll start keeping track of the playback time from that point onwards (until re-recording).
-      setShouldUpdatePlaybackTime(true)
-      // despite the state change above, this is still needed to force a rerender and make the time styling work
-      forceRerender()
+      // Destroy controller
+      controller.destroy()
     }
+  }, [controller, recordingUrl])
 
-    void handlePlayPause()
-  }, [wavesurfer, forceRerender])
-
-  const startRecording = useCallback(async () => {
-    if (!hasRequestedMicPermissions) {
-      setHasRequestedMicPermissions(true)
-
-      let stream: MediaStream | null = null
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        })
-      } catch {
-        setHasNoMicPermissions(true)
-        return
-      } finally {
-        // Always stop tracks if we got a stream, even if an error occurred
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop())
-        }
-      }
-    }
-
+  // Action handlers using the controller
+  const handleStartRecording = useCallback(async () => {
+    // Clear previous recording if any
     if (recordingUrl) {
       await handleClear({ updateWidgetManager: false, deleteFile: true })
     }
 
-    if (recordPluginRef.current && wavesurfer) {
-      wavesurfer.setOptions({
-        waveColor: theme.colors.primary,
-      })
-
-      const audioConstraints: MediaTrackConstraints = targetSampleRate
-        ? {
-            sampleRate: { ideal: targetSampleRate },
-          }
-        : {} // Default constraints
-
-      try {
-        await recordPluginRef.current.startRecording(audioConstraints)
-        setRecordingTime(formatTime(0))
-        forceRerender()
-      } catch (err) {
-        if (
-          err instanceof Error &&
-          (err.name === "NotAllowedError" ||
-            err.name === "PermissionDeniedError")
-        ) {
-          setHasNoMicPermissions(true)
-        } else {
-          setIsError(true)
-        }
-      }
-    } else if (!hasNoMicPermissions) {
-      setIsError(true)
-    }
-  }, [
-    hasRequestedMicPermissions,
-    setRecordingTime,
-    hasNoMicPermissions,
-    targetSampleRate,
-    wavesurfer,
-    theme.colors.primary,
-    forceRerender,
-    recordingUrl,
-    handleClear,
-  ])
-
-  const waitForRecordEnd = useCallback(
-    (plugin: RecordPlugin): Promise<Blob> => {
-      return new Promise<Blob>((resolve, reject) => {
-        const handleRecordEnd = (blob: Blob): void => {
-          plugin.un("record-end", handleRecordEnd)
-
-          if (blob && blob instanceof Blob && blob.size > 0) {
-            resolve(blob)
-          } else {
-            reject(new Error("Invalid or empty recording blob"))
-          }
-        }
-
-        plugin.on("record-end", handleRecordEnd)
-
-        plugin.stopRecording()
-      })
-    },
-    []
-  )
-
-  const stopRecording = useCallback(async () => {
-    const recordPlugin = recordPluginRef.current
-    if (!recordPlugin?.isRecording()) {
-      return
-    }
-
     try {
-      const blob = await waitForRecordEnd(recordPlugin)
-      await transcodeAndUploadFile(blob)
+      await controller.startRecording()
+    } catch {
+      // Error handling is done via event handlers
+    }
+  }, [controller, recordingUrl, handleClear])
 
-      if (wavesurfer) {
-        // We are blending this color instead of directly using the theme color (fadedText40)
-        // because the "faded" part of fadedText40 means introducing some transparency, which
-        // causes problems with the progress waveform color because wavesurfer is choosing to
-        // tint the waveColor with the progressColor instead of directly setting the progressColor.
-        // This means that the low opacity of fadedText40 causes the progress waveform to
-        // have the same opacity which makes it impossible to darken it enough to match designs.
-        // We fix this by blending the colors to figure out what the resulting color should be at
-        // full opacity, and we use that color to set the waveColor.
-        wavesurfer.setOptions({
-          waveColor: blend(theme.colors.fadedText40, theme.colors.secondaryBg),
-          progressColor: theme.colors.bodyText,
-        })
-      }
+  const handleStopRecording = useCallback(async () => {
+    try {
+      await controller.stopRecording()
+      // The blob will be handled by the onReady event
     } catch {
       setIsError(true)
     }
-  }, [transcodeAndUploadFile, wavesurfer, theme, waitForRecordEnd])
+  }, [controller])
 
-  const downloadRecording = useDownloadUrl(recordingUrl, "recording.wav")
+  const handlePlayPause = useCallback(async () => {
+    const caps = controller.getCapabilities()
 
-  const isRecording = recordPluginRef.current?.isRecording() || false
-  const isPlaying = Boolean(wavesurfer?.isPlaying())
-
-  const isPlayingOrRecording = isRecording || isPlaying
-
-  const showPlaceholder = !isRecording && !recordingUrl && !hasNoMicPermissions
-
-  const showNoMicPermissionsOrPlaceholderOrError =
-    hasNoMicPermissions || showPlaceholder || isError
-
-  const handleStartRecording = useCallback(() => {
-    void startRecording()
-  }, [startRecording])
-
-  const handleStopRecording = useCallback(() => {
-    void stopRecording()
-  }, [stopRecording])
+    if (caps.canPlay) {
+      await controller.play()
+    } else if (caps.canPause) {
+      controller.pause()
+    }
+  }, [controller])
 
   const handleClearWithError = useCallback(() => {
     void handleClear({ updateWidgetManager: false, deleteFile: true })
@@ -658,8 +388,13 @@ const AudioInput: React.FC<Props> = ({
   }, [handleClear])
 
   const handleDownloadClick = useCallback(() => {
-    downloadRecording()
-  }, [downloadRecording])
+    if (recordingUrl) {
+      const link = document.createElement("a")
+      link.href = recordingUrl
+      link.download = "recording.wav"
+      link.click()
+    }
+  }, [recordingUrl])
 
   const handleDeleteClick = useCallback(() => {
     void handleClear({
@@ -667,6 +402,18 @@ const AudioInput: React.FC<Props> = ({
       deleteFile: true,
     })
   }, [handleClear])
+
+  // Compute UI state
+  const isRecording = waveformState === "recording"
+  const isPlaying = waveformState === "playing"
+  const isPlayingOrRecording = isRecording || isPlaying
+  const showPlaceholder =
+    waveformState === "idle" &&
+    !recordingUrl &&
+    !hasNoMicPermissions &&
+    !isError
+  const showNoMicPermissionsOrPlaceholderOrError =
+    hasNoMicPermissions || showPlaceholder || isError
 
   return (
     <StyledAudioInputContainerDiv
@@ -713,9 +460,9 @@ const AudioInput: React.FC<Props> = ({
           isUploading={isUploading}
           isError={isError}
           recordingUrlExists={Boolean(recordingUrl)}
-          startRecording={handleStartRecording}
-          stopRecording={handleStopRecording}
-          onClickPlayPause={onClickPlayPause}
+          startRecording={() => void handleStartRecording()}
+          stopRecording={() => void handleStopRecording()}
+          onClickPlayPause={() => void handlePlayPause()}
           onClear={handleClearWithError}
           disabled={disabled || hasNoMicPermissions}
         />
@@ -725,16 +472,21 @@ const AudioInput: React.FC<Props> = ({
           {hasNoMicPermissions && <NoMicPermissions />}
           <StyledWaveSurferDiv
             data-testid="stAudioInputWaveSurfer"
-            ref={waveSurferRef}
             show={!showNoMicPermissionsOrPlaceholderOrError}
-          />
+          >
+            <WaveformSurface
+              controller={controller}
+              showTimer={false}
+              height={50}
+            />
+          </StyledWaveSurferDiv>
         </StyledWaveformInnerDiv>
         <StyledWaveformTimeCode
           isPlayingOrRecording={isPlayingOrRecording}
           disabled={disabled}
           data-testid="stAudioInputWaveformTimeCode"
         >
-          {shouldUpdatePlaybackTime ? progressTime : recordingTime}
+          {displayTime}
         </StyledWaveformTimeCode>
       </StyledWaveformContainerDiv>
     </StyledAudioInputContainerDiv>
