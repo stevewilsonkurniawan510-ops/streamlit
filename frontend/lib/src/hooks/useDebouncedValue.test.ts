@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { renderHook } from "@testing-library/react"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { act, renderHook } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { useDebouncedValue } from "./useDebouncedValue"
 
@@ -51,11 +51,15 @@ describe("useDebouncedValue", () => {
     expect(result.current).toBe("initial")
 
     // Fast-forward time by less than the delay
-    vi.advanceTimersByTime(200)
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
     expect(result.current).toBe("initial")
 
     // Fast-forward time to complete the delay
-    vi.advanceTimersByTime(100)
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
     expect(result.current).toBe("updated")
   })
 
@@ -74,7 +78,9 @@ describe("useDebouncedValue", () => {
     expect(result.current).toBe("initial")
 
     // Fast-forward by 200ms
-    vi.advanceTimersByTime(200)
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
     expect(result.current).toBe("initial")
 
     // Second update before the first delay completes
@@ -82,11 +88,15 @@ describe("useDebouncedValue", () => {
     expect(result.current).toBe("initial")
 
     // Fast-forward by 200ms (not enough to complete the new delay)
-    vi.advanceTimersByTime(200)
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
     expect(result.current).toBe("initial")
 
     // Complete the delay for the second update
-    vi.advanceTimersByTime(100)
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
     expect(result.current).toBe("update2")
   })
 
@@ -102,7 +112,9 @@ describe("useDebouncedValue", () => {
     expect(numberResult.current).toBe(42)
 
     numberRerender({ value: 84, delay: 100 })
-    vi.advanceTimersByTime(100)
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
     expect(numberResult.current).toBe(84)
 
     // Test with objects
@@ -119,7 +131,9 @@ describe("useDebouncedValue", () => {
     expect(objectResult.current).toBe(initialObj)
 
     objectRerender({ value: updatedObj, delay: 100 })
-    vi.advanceTimersByTime(100)
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
     expect(objectResult.current).toBe(updatedObj)
   })
 
@@ -139,7 +153,9 @@ describe("useDebouncedValue", () => {
     expect(result.current).toBe("initial")
 
     // Fast-forward minimal time
-    vi.advanceTimersByTime(0)
+    act(() => {
+      vi.advanceTimersByTime(0)
+    })
     expect(result.current).toBe("updated")
   })
 

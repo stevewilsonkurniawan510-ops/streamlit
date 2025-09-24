@@ -15,7 +15,7 @@
  */
 
 import { renderHook } from "@testing-library/react"
-import { beforeEach, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { useCalculatedDimensions } from "./useCalculatedDimensions"
 import * as useDebouncedValue from "./useDebouncedValue"
