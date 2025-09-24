@@ -17,7 +17,7 @@ from pathlib import Path
 
 import streamlit as st
 
-st.header("Bidi Components - Errors")
+st.header("Custom Components v2 - Error Handling")
 
 st.divider()
 with st.container():

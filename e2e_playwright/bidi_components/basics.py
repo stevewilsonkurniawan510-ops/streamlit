@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from streamlit.runtime.state.common import WidgetCallback
 
 
-st.header("Bidi Components - Consolidated")
+st.header("Custom Components v2 - Basics")
 
 
 # ---------------------------------------------------------------------------
@@ -250,8 +250,7 @@ with st.container():
 st.divider()
 
 
-trigger_container = st.container()
-with trigger_container:
+with st.container():
     st.subheader("Trigger")
 
     if "trigger_foo_count" not in st.session_state:
@@ -411,6 +410,7 @@ with st.container():
 
 
 st.divider()
+
 with st.container():
     st.subheader("Basic (broad CSS + mixed state/trigger)")
 
@@ -519,6 +519,7 @@ div {
 
 
 st.divider()
+
 with st.container():
     st.subheader("Arrow serialization")
 
