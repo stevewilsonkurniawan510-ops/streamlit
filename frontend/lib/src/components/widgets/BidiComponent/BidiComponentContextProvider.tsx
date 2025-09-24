@@ -72,10 +72,9 @@ export const BidiComponentContextProvider: FC<
         return arrowData?.data || null
       case "bytes":
         return bytes || null
-      // TODO: Fix investigate this:
-      // @ts-expect-error I don't know why this is throwing an error, when it should definitely be "mixed"
-      case "mixed":
-      case "any": {
+      // @ts-expect-error -- This is the proper type based on the protobuf
+      // definition, but the type is not generating correctly for some reason.
+      case "mixed": {
         if (mixed) {
           const { json: mixedJson, arrowBlobs } = mixed
           if (mixedJson) {
@@ -94,8 +93,11 @@ export const BidiComponentContextProvider: FC<
             return reconstructMixedData(jsonData, arrowBlobsMap)
           }
         }
-
-        // For other unknown data types, try to handle gracefully
+        return null
+      }
+      case "any": {
+        // We shouldn't get any other data types here, but if we do, we should
+        // return null.
         return null
       }
       case undefined:
