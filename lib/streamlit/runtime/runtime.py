@@ -23,6 +23,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Final, NamedTuple
 
 from streamlit.components.lib.local_component_registry import LocalComponentRegistry
+from streamlit.components.v2.component_manager import BidiComponentManager
 from streamlit.logger import get_logger
 from streamlit.proto.ForwardMsg_pb2 import ForwardMsg
 from streamlit.runtime.app_session import AppSession
@@ -99,6 +100,11 @@ class RuntimeConfig:
     # The ComponentRegistry instance to use.
     component_registry: BaseComponentRegistry = field(
         default_factory=LocalComponentRegistry
+    )
+
+    # The BidiComponentManager instance to use for v2 components.
+    bidi_component_registry: BidiComponentManager = field(
+        default_factory=BidiComponentManager
     )
 
     # The SessionManager class to be used.
@@ -201,10 +207,14 @@ class Runtime:
 
         # Initialize managers
         self._component_registry = config.component_registry
+        self._bidi_component_registry = config.bidi_component_registry
         self._uploaded_file_mgr = config.uploaded_file_manager
         self._media_file_mgr = MediaFileManager(storage=config.media_file_storage)
         self._cache_storage_manager = config.cache_storage_manager
         self._script_cache = ScriptCache()
+
+        # Scan and register components for CCv2 from pyproject.toml
+        self._scan_and_register_component_manifests()
 
         self._session_mgr = config.session_manager_class(
             session_storage=config.session_storage,
@@ -228,6 +238,10 @@ class Runtime:
         return self._component_registry
 
     @property
+    def bidi_component_registry(self) -> BidiComponentManager:
+        return self._bidi_component_registry
+
+    @property
     def uploaded_file_mgr(self) -> UploadedFileManager:
         return self._uploaded_file_mgr
 
@@ -247,6 +261,30 @@ class Runtime:
     def stopped(self) -> Awaitable[None]:
         """A Future that completes when the Runtime's run loop has exited."""
         return self._get_async_objs().stopped
+
+    def _scan_and_register_component_manifests(self) -> None:
+        """Scan for component metadata in pyproject.toml files and pre-register components."""
+        try:
+            from streamlit.components.v2.manifest_scanner import (
+                scan_component_manifests,
+            )
+
+            manifests = scan_component_manifests()
+            for manifest, package_root in manifests:
+                self._bidi_component_registry.register_from_manifest(
+                    manifest, package_root
+                )
+                _LOGGER.info(
+                    "Registered components from pyproject.toml: %s v%s",
+                    manifest.name,
+                    manifest.version,
+                )
+
+            # Start file watching for development mode after all components are registered
+            self._bidi_component_registry.start_file_watching()
+
+        except Exception as e:
+            _LOGGER.warning("Failed to scan component manifests: %s", e)
 
     # NOTE: A few Runtime methods listed as threadsafe (get_client and
     # is_active_session) currently rely on the implementation detail that
