@@ -17,6 +17,8 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import pandas as pd
+
 import streamlit as st
 
 if TYPE_CHECKING:
@@ -517,6 +519,54 @@ div {
     st.write(f"Result: {basic_result}")
     st.text(f"session_state: {st.session_state.get('basic_component_1')}")
     st.write(f"Click count: {st.session_state.basic_click_count}")
+
+
+st.divider()
+with st.container():
+    st.subheader("Arrow serialization")
+
+    # Component that receives two DataFrames and a label and renders
+    # their schema and row data, verifying Arrow serialization.
+    _ARROW_JS = """
+export default function(component) {
+  const { parentElement, data } = component
+
+  const root = parentElement.querySelector("#my-arrow-component")
+
+  const { df, df2, label } = data;
+  const cols = df.schema.fields.map((f) => f.name);
+  const rows = df.toArray();
+  const cols2 = df2.schema.fields.map((f) => f.name);
+  const rows2 = df2.toArray();
+
+  root.innerText = `Label: ${label}\nCols: ${cols}\nRows: ${rows}\nCols2: ${cols2}\nRows2: ${rows2}`
+}
+"""
+
+    _ARROW_HTML = """
+<div id="my-arrow-component"></div>
+"""
+
+    _ARROW_CMP = st.components.v2.component(
+        name="my_arrow_component",
+        js=_ARROW_JS,
+        html=_ARROW_HTML,
+    )
+
+    def arrow_component(*, key: str, data: Any) -> BidiComponentResult:
+        return _ARROW_CMP(key=key, data=data)
+
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    df2 = pd.DataFrame({"b": [4, 5, 6]})
+
+    arrow_component(
+        key="my_arrow_component",
+        data={
+            "df": df,
+            "df2": df2,
+            "label": "Hello World",
+        },
+    )
 
 
 st.divider()

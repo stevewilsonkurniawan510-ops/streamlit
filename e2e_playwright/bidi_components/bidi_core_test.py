@@ -332,3 +332,13 @@ def test_basic_initial_and_submission(app: Page) -> None:
         )
     ).to_be_visible()
     expect(basic.get_by_text("Click count: 1")).to_be_visible()
+
+
+def test_arrow_serialization_works(app: Page) -> None:
+    """Verify the consolidated Arrow component renders expected content."""
+    arrow = section(app, "Arrow serialization")
+    expect(arrow.get_by_text("Cols: a")).to_be_visible()
+    expect(arrow.get_by_text('Rows: {"a": 1},{"a": 2},{"a": 3}')).to_be_visible()
+    expect(arrow.get_by_text("Cols2: b")).to_be_visible()
+    expect(arrow.get_by_text('Rows2: {"b": 4},{"b": 5},{"b": 6}')).to_be_visible()
+    expect(arrow.get_by_text("Label: Hello World")).to_be_visible()
