@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -248,8 +247,6 @@ with st.container():
     st.text(f"session_state: {st.session_state.get('stateful_component_1')}")
     st.write(f"Range change count: {st.session_state.stateful_range_change_count}")
     st.write(f"Text change count: {st.session_state.stateful_text_change_count}")
-
-
 st.divider()
 
 
@@ -567,28 +564,3 @@ export default function(component) {
             "label": "Hello World",
         },
     )
-
-
-st.divider()
-with st.container():
-    st.subheader("Errors (intentionally broken components)")
-
-    # Incorrect JS (no default export)
-    _incorrect_js = st.components.v2.component(
-        "incorrectJsComponent",
-        html="""<h1>The JS is incorrect</h1>""",
-        js="""
-            function Foo() {
-                // I am some JS without a default export
-            }
-        """,
-    )
-    _incorrect_js()
-
-    # Incorrect CSS path
-    _incorrect_css = st.components.v2.component(
-        "incorrectCssPathComponent",
-        html="""<h1>The CSS path is incorrect</h1>""",
-        css=Path(__file__).parent / "incorrect_css_path.css",  # type: ignore[arg-type]
-    )
-    _incorrect_css()

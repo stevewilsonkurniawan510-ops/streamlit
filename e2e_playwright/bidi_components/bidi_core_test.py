@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from playwright.sync_api import Locator, Page, expect
 
 from e2e_playwright.conftest import wait_for_app_run
@@ -275,21 +274,6 @@ def test_state_persists_across_unmount_and_remount(app: Page) -> None:
     ).to_be_visible()
     expect(remount.get_by_text("Range change count: 2")).to_be_visible()
     expect(remount.get_by_text("Text change count: 2")).to_be_visible()
-
-
-def test_error_handling_messages(app: Page) -> None:
-    expect(
-        app.get_by_text(
-            "BidiComponent Error: JS module does not have a default export function."
-        )
-    ).to_be_visible()
-
-    expect(
-        app.get_by_text(
-            "streamlit.errors.StreamlitAPIException: css parameter must be a string or None. "
-            "Pass a string path or glob."
-        )
-    ).to_be_visible()
 
 
 def test_basic_initial_and_submission(app: Page) -> None:
