@@ -49,3 +49,7 @@ short_dataframe = pd.DataFrame(np.random.randn(3, 3))
 st.dataframe(short_dataframe, width="stretch", key="stretch_dataframe")
 st.dataframe(short_dataframe, width="content", key="content_dataframe")
 st.dataframe(short_dataframe, width=400, height=300, key="fixed_dimensions_dataframe")
+
+st.write("Dataframe with height='stretch' (in 400px container):")
+with st.container(border=True, key="test_height_stretch", height=400):
+    st.dataframe(short_dataframe, height="stretch", key="stretch_height_dataframe")

@@ -605,6 +605,15 @@ export function shouldUseContentWidth(
 }
 
 /**
+ * Helper function to determine if the element is configured to use stretch height.
+ */
+export function shouldUseStretchHeight(
+  heightConfig?: streamlit.IHeightConfig | null
+): boolean {
+  return heightConfig?.useStretch ?? false
+}
+
+/**
  * Helper function to get the configured height from the heightConfig and element.
  * This handles both the new heightConfig and legacy height fields.
  */

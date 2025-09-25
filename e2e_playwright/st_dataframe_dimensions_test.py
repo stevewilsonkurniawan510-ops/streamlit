@@ -16,7 +16,7 @@ import pytest
 from playwright.sync_api import Page, expect
 
 from e2e_playwright.conftest import ImageCompareFunction
-from e2e_playwright.shared.app_utils import click_button
+from e2e_playwright.shared.app_utils import click_button, get_element_by_key
 
 
 def test_data_frame_with_different_sizes(app: Page):
@@ -40,10 +40,14 @@ def test_data_frame_with_different_sizes(app: Page):
         {"width": "704px", "height": "142px"},
         {"width": "229px", "height": "142px"},
         {"width": "400px", "height": "300px"},
+        {
+            "width": "704px",
+            "height": "368px",
+        },
     ]
 
     dataframe_elements = app.get_by_test_id("stDataFrame")
-    expect(dataframe_elements).to_have_count(17)
+    expect(dataframe_elements).to_have_count(18)
 
     for i, element in enumerate(dataframe_elements.all()):
         expected_width = expected[i]["width"]
@@ -89,3 +93,6 @@ def test_data_frame_rendering(app: Page, assert_snapshot: ImageCompareFunction):
     assert_snapshot(
         fixed_dimensions_dataframe_element, name="st_dataframe-fixed-dimensions"
     )
+
+    stretch_height_container = get_element_by_key(app, "test_height_stretch")
+    assert_snapshot(stretch_height_container, name="st_dataframe-stretch-height")

@@ -35,6 +35,7 @@ from streamlit.elements.lib.column_config_utils import (
 )
 from streamlit.elements.lib.form_utils import current_form_id
 from streamlit.elements.lib.layout_utils import (
+    HeightWithoutContent,
     LayoutConfig,
     Width,
     validate_height,
@@ -313,7 +314,7 @@ class ArrowMixin:
         self,
         data: Data = None,
         width: Width = "stretch",
-        height: int | Literal["auto"] = "auto",
+        height: HeightWithoutContent | Literal["auto"] = "auto",
         *,
         use_container_width: bool | None = None,
         hide_index: bool | None = None,
@@ -662,7 +663,6 @@ class ArrowMixin:
         validate_height(
             height,
             allow_content=False,
-            allow_stretch=False,
             additional_allowed=["auto"],
         )
 

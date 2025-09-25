@@ -30,6 +30,7 @@ import {
   getConfiguredWidth,
   shouldUseContainerWidth,
   shouldUseContentWidth,
+  shouldUseStretchHeight,
 } from "~lib/components/widgets/DataFrame/arrowUtils"
 import { notNullOrUndefined } from "~lib/util/utils"
 
@@ -59,10 +60,11 @@ export type AutoSizerReturn = {
  * @param numRows - The number of rows in the table
  * @param usesGroupRow - Whether the table uses a group row to display multiple column headers.
  * @param containerWidth - The width of the surrounding container
- * @param containerHeight - The height of the surrounding container
+ * @param containerHeight - The height of the surrounding container (fullscreen mode)
  * @param isFullScreen - Whether the table is in fullscreen mode
  * @param widthConfig - The width configuration of the table
  * @param heightConfig - The height configuration of the table
+ * @param measuredContainerHeight - The measured height of the container for height="stretch"
  *
  * @returns The row height, min/max height & width, and the current size of the resizable container.
  */
@@ -75,7 +77,8 @@ function useTableSizer(
   containerHeight?: number,
   isFullScreen?: boolean,
   widthConfig?: streamlit.IWidthConfig | null,
-  heightConfig?: streamlit.IHeightConfig | null
+  heightConfig?: streamlit.IHeightConfig | null,
+  measuredContainerHeight?: number
 ): AutoSizerReturn {
   const rowHeight = element.rowHeight ?? gridTheme.defaultRowHeight
   // Min height for the resizable table container:
@@ -102,8 +105,17 @@ function useTableSizer(
   let initialHeight = Math.min(maxHeight, gridTheme.defaultTableHeight)
 
   const configuredHeight = getConfiguredHeight(element, heightConfig)
+  const useStretchHeight = shouldUseStretchHeight(heightConfig)
 
-  if (configuredHeight) {
+  if (
+    useStretchHeight &&
+    measuredContainerHeight &&
+    measuredContainerHeight > 0
+  ) {
+    // height="stretch" - use the measured container height
+    initialHeight = Math.max(measuredContainerHeight, minHeight)
+    maxHeight = Math.max(measuredContainerHeight, maxHeight)
+  } else if (configuredHeight) {
     // User has explicitly configured a height (integer value)
     initialHeight = Math.max(configuredHeight, minHeight)
     maxHeight = Math.max(configuredHeight, maxHeight)
@@ -200,7 +212,7 @@ function useTableSizer(
       ...prev,
       height: initialHeight,
     }))
-  }, [initialHeight, numRows])
+  }, [initialHeight, numRows, measuredContainerHeight])
 
   // Change sizing if the fullscreen mode is activated or deactivated:
   useLayoutEffect(() => {

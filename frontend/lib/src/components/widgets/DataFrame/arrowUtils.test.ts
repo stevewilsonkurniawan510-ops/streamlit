@@ -58,6 +58,7 @@ import {
   initIndexFromArrow,
   shouldUseContainerWidth,
   shouldUseContentWidth,
+  shouldUseStretchHeight,
 } from "./arrowUtils"
 import {
   CheckboxColumn,
@@ -1367,6 +1368,34 @@ describe("width configuration utilities", () => {
       const element = ArrowProto.create({ height: 0 })
 
       expect(getConfiguredHeight(element, null)).toBe(undefined)
+    })
+  })
+
+  describe("shouldUseStretchHeight", () => {
+    it("returns true when heightConfig.useStretch is true", () => {
+      const heightConfig = new streamlit.HeightConfig({ useStretch: true })
+
+      expect(shouldUseStretchHeight(heightConfig)).toBe(true)
+    })
+
+    it("returns false when heightConfig.useStretch is false", () => {
+      const heightConfig = new streamlit.HeightConfig({ useStretch: false })
+
+      expect(shouldUseStretchHeight(heightConfig)).toBe(false)
+    })
+
+    it("returns false when heightConfig is null", () => {
+      expect(shouldUseStretchHeight(null)).toBe(false)
+    })
+
+    it("returns false when heightConfig is undefined", () => {
+      expect(shouldUseStretchHeight(undefined)).toBe(false)
+    })
+
+    it("returns false when heightConfig.useStretch is not set", () => {
+      const heightConfig = new streamlit.HeightConfig({ pixelHeight: 300 })
+
+      expect(shouldUseStretchHeight(heightConfig)).toBe(false)
     })
   })
 })

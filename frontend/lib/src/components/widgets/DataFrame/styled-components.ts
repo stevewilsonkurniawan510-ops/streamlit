@@ -28,6 +28,7 @@ export const StyledResizableContainer =
     ({ theme, isInHorizontalLayout }) => ({
       position: "relative",
       display: isInHorizontalLayout ? "flex" : "inline-block",
+      height: "100%",
 
       "& .stDataFrameGlideDataEditor": {
         height: "100%",
