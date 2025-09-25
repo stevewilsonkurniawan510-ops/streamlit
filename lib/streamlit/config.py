@@ -98,6 +98,8 @@ class CustomThemeCategories(str, Enum):
     """Theme categories that can be set with custom theme config."""
 
     SIDEBAR = "sidebar"
+    LIGHT = "light"
+    DARK = "dark"
 
 
 def set_option(key: str, value: Any, where_defined: str = _USER_DEFINED) -> None:
@@ -328,6 +330,43 @@ def _create_theme_options(
 
         _create_option(
             f"{section}.{name}",
+            description=description,
+            default_val=default_val,
+            visibility=visibility,
+            type_=type_,
+            scriptable=False,
+            deprecated=False,
+            deprecation_text=None,
+            expiration_date=None,
+            replaced_by=None,
+            sensitive=False,
+        )
+
+    # Also create options for nested sidebar sections if both SIDEBAR and LIGHT/DARK are present
+    if (
+        CustomThemeCategories.SIDEBAR in categories
+        and CustomThemeCategories.LIGHT in categories
+    ):
+        _create_option(
+            f"theme.{CustomThemeCategories.SIDEBAR.value}.{CustomThemeCategories.LIGHT.value}.{name}",
+            description=description,
+            default_val=default_val,
+            visibility=visibility,
+            type_=type_,
+            scriptable=False,
+            deprecated=False,
+            deprecation_text=None,
+            expiration_date=None,
+            replaced_by=None,
+            sensitive=False,
+        )
+
+    if (
+        CustomThemeCategories.SIDEBAR in categories
+        and CustomThemeCategories.DARK in categories
+    ):
+        _create_option(
+            f"theme.{CustomThemeCategories.SIDEBAR.value}.{CustomThemeCategories.DARK.value}.{name}",
             description=description,
             default_val=default_val,
             visibility=visibility,
@@ -1148,10 +1187,33 @@ _create_section("theme", "Settings to define a custom theme for your Streamlit a
 
 # Create a section for each custom theme element
 for cat in list(CustomThemeCategories):
-    _create_section(
-        f"theme.{cat.value}",
-        f"Settings to define a custom {cat.value} theme in your Streamlit app.",
-    )
+    if cat == CustomThemeCategories.SIDEBAR:
+        _create_section(
+            f"theme.{cat.value}",
+            f"Settings to define a custom {cat.value} theme in your Streamlit app.",
+        )
+    elif cat == CustomThemeCategories.LIGHT:
+        _create_section(
+            f"theme.{cat.value}",
+            "Settings to define custom light theme that extends the defined [theme] properties.",
+        )
+        # Also create the nested sidebar.light section
+        _create_section(
+            "theme.sidebar.light",
+            """Settings to define a custom light theme for the sidebar that extends the defined
+            [theme.sidebar] properties.""",
+        )
+    elif cat == CustomThemeCategories.DARK:
+        _create_section(
+            f"theme.{cat.value}",
+            "Settings to define custom dark theme that extends the defined [theme] properties.",
+        )
+        # Also create the nested sidebar.dark section
+        _create_section(
+            "theme.sidebar.dark",
+            """Settings to define a custom dark theme for the sidebar that extends the defined
+            [theme.sidebar] properties.""",
+        )
 
 _create_theme_options(
     "base",
@@ -1171,7 +1233,12 @@ _create_theme_options(
 
 _create_theme_options(
     "primaryColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Primary accent color.
     """,
@@ -1179,7 +1246,12 @@ _create_theme_options(
 
 _create_theme_options(
     "backgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Background color of the app.
     """,
@@ -1187,7 +1259,12 @@ _create_theme_options(
 
 _create_theme_options(
     "secondaryBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Background color used for most interactive widgets.
     """,
@@ -1195,7 +1272,12 @@ _create_theme_options(
 
 _create_theme_options(
     "textColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Color used for almost all text.
     """,
@@ -1203,7 +1285,12 @@ _create_theme_options(
 
 _create_theme_options(
     "redColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Red color used in the basic color palette.
 
@@ -1218,7 +1305,12 @@ _create_theme_options(
 
 _create_theme_options(
     "orangeColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Orange color used in the basic color palette.
 
@@ -1233,7 +1325,12 @@ _create_theme_options(
 
 _create_theme_options(
     "yellowColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Yellow color used in the basic color palette.
 
@@ -1248,7 +1345,12 @@ _create_theme_options(
 
 _create_theme_options(
     "blueColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Blue color used in the basic color palette.
 
@@ -1263,7 +1365,12 @@ _create_theme_options(
 
 _create_theme_options(
     "greenColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Green color used in the basic color palette.
 
@@ -1278,7 +1385,12 @@ _create_theme_options(
 
 _create_theme_options(
     "violetColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Violet color used in the basic color palette.
 
@@ -1292,7 +1404,12 @@ _create_theme_options(
 
 _create_theme_options(
     "grayColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Gray color used in the basic color palette.
 
@@ -1307,7 +1424,12 @@ _create_theme_options(
 
 _create_theme_options(
     "redBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Red background color used in the basic color palette.
 
@@ -1321,7 +1443,12 @@ _create_theme_options(
 
 _create_theme_options(
     "orangeBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Orange background color used for the basic color palette.
 
@@ -1335,7 +1462,12 @@ _create_theme_options(
 
 _create_theme_options(
     "yellowBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Yellow background color used for the basic color palette.
 
@@ -1349,7 +1481,12 @@ _create_theme_options(
 
 _create_theme_options(
     "blueBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Blue background color used for the basic color palette.
 
@@ -1363,7 +1500,12 @@ _create_theme_options(
 
 _create_theme_options(
     "greenBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Green background color used for the basic color palette.
 
@@ -1377,7 +1519,12 @@ _create_theme_options(
 
 _create_theme_options(
     "violetBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Violet background color used for the basic color palette.
 
@@ -1391,7 +1538,12 @@ _create_theme_options(
 
 _create_theme_options(
     "grayBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Gray background color used for the basic color palette.
 
@@ -1405,7 +1557,12 @@ _create_theme_options(
 
 _create_theme_options(
     "redTextColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Red text color used for the basic color palette.
 
@@ -1419,7 +1576,12 @@ _create_theme_options(
 
 _create_theme_options(
     "orangeTextColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Orange text color used for the basic color palette.
 
@@ -1433,7 +1595,12 @@ _create_theme_options(
 
 _create_theme_options(
     "yellowTextColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Yellow text color used for the basic color palette.
 
@@ -1447,7 +1614,12 @@ _create_theme_options(
 
 _create_theme_options(
     "blueTextColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Blue text color used for the basic color palette.
 
@@ -1461,7 +1633,12 @@ _create_theme_options(
 
 _create_theme_options(
     "greenTextColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Green text color used for the basic color palette.
 
@@ -1475,7 +1652,12 @@ _create_theme_options(
 
 _create_theme_options(
     "violetTextColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Violet text color used for the basic color palette.
 
@@ -1489,7 +1671,12 @@ _create_theme_options(
 
 _create_theme_options(
     "grayTextColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Gray text color used for the basic color palette.
 
@@ -1503,7 +1690,12 @@ _create_theme_options(
 
 _create_theme_options(
     "linkColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Color used for all links.
     """,
@@ -1511,7 +1703,12 @@ _create_theme_options(
 
 _create_theme_options(
     "linkUnderline",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Whether or not links should be displayed with an underline.
     """,
@@ -1520,7 +1717,12 @@ _create_theme_options(
 
 _create_theme_options(
     "codeTextColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Text color used for code blocks.
 
@@ -1533,7 +1735,12 @@ _create_theme_options(
 
 _create_theme_options(
     "codeBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Background color used for code blocks.
     """,
@@ -1541,7 +1748,12 @@ _create_theme_options(
 
 _create_theme_options(
     "font",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The font family for all text, except code blocks.
 
@@ -1622,7 +1834,12 @@ _create_theme_options(
 
 _create_theme_options(
     "headingFont",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The font family to use for headings.
 
@@ -1642,7 +1859,12 @@ _create_theme_options(
 
 _create_theme_options(
     "headingFontSizes",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         One or more font sizes for h1-h6 headings.
 
@@ -1674,7 +1896,12 @@ _create_theme_options(
 
 _create_theme_options(
     "headingFontWeights",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         One or more font weights for h1-h6 headings.
 
@@ -1704,7 +1931,12 @@ _create_theme_options(
 
 _create_theme_options(
     "codeFont",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The font family to use for code (monospace) in the sidebar.
 
@@ -1722,7 +1954,12 @@ _create_theme_options(
 
 _create_theme_options(
     "codeFontSize",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The font size (in pixels or rem) for code blocks and code text.
 
@@ -1735,7 +1972,12 @@ _create_theme_options(
 
 _create_theme_options(
     "codeFontWeight",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The font weight for code blocks and code text.
 
@@ -1750,7 +1992,12 @@ _create_theme_options(
 
 _create_theme_options(
     "baseRadius",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The radius used as basis for the corners of most UI elements.
 
@@ -1769,7 +2016,12 @@ _create_theme_options(
 
 _create_theme_options(
     "buttonRadius",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The radius used as basis for the corners of buttons.
 
@@ -1790,7 +2042,12 @@ _create_theme_options(
 
 _create_theme_options(
     "borderColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The color of the border around elements.
     """,
@@ -1798,7 +2055,12 @@ _create_theme_options(
 
 _create_theme_options(
     "dataframeBorderColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The color of the border around dataframes and tables.
 
@@ -1808,7 +2070,12 @@ _create_theme_options(
 
 _create_theme_options(
     "dataframeHeaderBackgroundColor",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         The background color of the dataframe's header.
 
@@ -1822,7 +2089,12 @@ _create_theme_options(
 
 _create_theme_options(
     "showWidgetBorder",
-    categories=["theme", CustomThemeCategories.SIDEBAR],
+    categories=[
+        "theme",
+        CustomThemeCategories.SIDEBAR,
+        CustomThemeCategories.LIGHT,
+        CustomThemeCategories.DARK,
+    ],
     description="""
         Whether to show a border around input widgets.
     """,
@@ -2125,7 +2397,11 @@ def _update_config_with_toml(raw_toml: str, where_defined: str) -> None:
         for name, value in section_data.items():
             option_name = f"{section_path}.{name}"
             # Process it as a nested config section if it's a custom theme sub-category
-            if name in [CustomThemeCategories.SIDEBAR.value]:
+            if name in [
+                CustomThemeCategories.SIDEBAR.value,
+                CustomThemeCategories.LIGHT.value,
+                CustomThemeCategories.DARK.value,
+            ]:
                 process_section(option_name, value)
             else:
                 # It's a regular config option, set it

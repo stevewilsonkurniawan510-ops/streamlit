@@ -736,10 +736,32 @@ class AppSession:
             msg.new_session, pages or self._pages_manager.get_pages()
         )
         _populate_config_msg(msg.new_session.config)
+
+        # Handles [theme] section
         _populate_theme_msg(msg.new_session.custom_theme)
+        # Handles [theme.light] & [theme.dark] sections
+        _populate_theme_msg(
+            msg.new_session.custom_theme.light,
+            f"theme.{config.CustomThemeCategories.LIGHT.value}",
+        )
+        _populate_theme_msg(
+            msg.new_session.custom_theme.dark,
+            f"theme.{config.CustomThemeCategories.DARK.value}",
+        )
+
+        # Handles [theme.sidebar] section
         _populate_theme_msg(
             msg.new_session.custom_theme.sidebar,
             f"theme.{config.CustomThemeCategories.SIDEBAR.value}",
+        )
+        # Handles [theme.sidebar.light] & [theme.sidebar.dark] sections
+        _populate_theme_msg(
+            msg.new_session.custom_theme.sidebar.light,
+            f"theme.{config.CustomThemeCategories.SIDEBAR.value}.{config.CustomThemeCategories.LIGHT.value}",
+        )
+        _populate_theme_msg(
+            msg.new_session.custom_theme.sidebar.dark,
+            f"theme.{config.CustomThemeCategories.SIDEBAR.value}.{config.CustomThemeCategories.DARK.value}",
         )
 
         # Immutable session data. We send this every time a new session is
