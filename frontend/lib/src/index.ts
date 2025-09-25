@@ -34,7 +34,6 @@ export type { LibConfig, LibContextProps } from "./components/core/LibContext"
 export { PortalProvider } from "./components/core/Portal/PortalProvider"
 export { default as ThemeProvider } from "./components/core/ThemeProvider"
 export { default as AlertElement } from "./components/elements/AlertElement"
-export { default as StreamlitSyntaxHighlighter } from "./components/elements/CodeBlock/StreamlitSyntaxHighlighter"
 export { handleFavicon } from "./components/elements/Favicon"
 export { default as TextElement } from "./components/elements/TextElement"
 export {

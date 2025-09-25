@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { ReactElement, ReactNode } from "react"
+import React, { lazy, ReactElement, ReactNode } from "react"
 
 import { DialogType } from "@streamlit/app/src/components/StreamlitDialog/constants"
 import {
@@ -26,7 +26,6 @@ import {
   ModalHeader,
   SessionInfo,
   StreamlitMarkdown,
-  StreamlitSyntaxHighlighter,
 } from "@streamlit/lib"
 import { IException } from "@streamlit/protobuf"
 
@@ -172,9 +171,9 @@ function ScriptCompileErrorDialog(
     <Modal isOpen onClose={props.onClose} size="auto" autoFocus={false}>
       <ModalHeader>Script execution error</ModalHeader>
       <ModalBody>
-        <StreamlitSyntaxHighlighter showLineNumbers={false} wrapLines={false}>
+        <pre>
           {props.exception?.message ? props.exception.message : "No message"}
-        </StreamlitSyntaxHighlighter>
+        </pre>
       </ModalBody>
       <ModalFooter>
         <ModalButton kind={BaseButtonKind.SECONDARY} onClick={props.onClose}>

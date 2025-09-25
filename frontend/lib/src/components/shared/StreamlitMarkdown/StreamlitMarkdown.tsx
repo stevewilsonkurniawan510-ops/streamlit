@@ -18,6 +18,7 @@ import React, {
   CSSProperties,
   type FC,
   type HTMLProps,
+  lazy,
   memo,
   type ReactElement,
   type ReactNode,
@@ -50,7 +51,6 @@ import xxhash from "xxhashjs"
 import streamlitLogo from "~lib/assets/img/streamlit-logo/streamlit-mark-color.svg"
 import IsDialogContext from "~lib/components/core/IsDialogContext"
 import IsSidebarContext from "~lib/components/core/IsSidebarContext"
-import StreamlitSyntaxHighlighter from "~lib/components/elements/CodeBlock/StreamlitSyntaxHighlighter"
 import { StyledInlineCode } from "~lib/components/elements/CodeBlock/styled-components"
 import ErrorBoundary from "~lib/components/shared/ErrorBoundary"
 import { InlineTooltipIcon } from "~lib/components/shared/TooltipIcon"
@@ -72,6 +72,10 @@ import {
 } from "./styled-components"
 
 import "katex/dist/katex.min.css"
+
+const StreamlitSyntaxHighlighter = lazy(
+  () => import("~lib/components/elements/CodeBlock/StreamlitSyntaxHighlighter")
+)
 
 export enum Tags {
   H1 = "h1",
