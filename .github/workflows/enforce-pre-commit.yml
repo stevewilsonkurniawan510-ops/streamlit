@@ -76,8 +76,8 @@ jobs:
             PRECOMMIT_OUTPUT=$(cat /tmp/precommit_output.txt || echo "")
 
             # Check for specific hook failures and provide targeted instructions
-            # Look for "Failed" status and specific hook patterns
-            if echo "$PRECOMMIT_OUTPUT" | grep -A5 -B5 "generate-agent-rules" | grep -q "Failed"; then
+            # Look for specific hook patterns followed by "Failed" on the same line
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "Check generated agent rules.*Failed"; then
               echo "🔧 Agent rules are out of sync!"
               echo ""
               echo "Your changes to AGENTS.md files require regenerating cursor rules:"
@@ -87,7 +87,7 @@ jobs:
               echo ""
             fi
 
-            if echo "$PRECOMMIT_OUTPUT" | grep -A5 -B5 "ruff" | grep -q "Failed"; then
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "ruff.*Failed"; then
               echo "🔧 Python code formatting/linting issues detected!"
               echo ""
               echo "Fix Python issues with:"
@@ -96,7 +96,7 @@ jobs:
               echo ""
             fi
 
-            if echo "$PRECOMMIT_OUTPUT" | grep -A5 -B5 -i "prettier" | grep -q "Failed"; then
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "Prettier.*Failed"; then
               echo "🔧 Frontend code formatting issues detected!"
               echo ""
               echo "Fix frontend formatting with:"
@@ -104,7 +104,7 @@ jobs:
               echo ""
             fi
 
-            if echo "$PRECOMMIT_OUTPUT" | grep -A5 -B5 "insert-license" | grep -q "Failed"; then
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "Add license for all.*Failed\|Checks license headers.*Failed"; then
               echo "🔧 Missing or incorrect license headers!"
               echo ""
               echo "License headers will be automatically added when you run:"
@@ -112,7 +112,7 @@ jobs:
               echo ""
             fi
 
-            if echo "$PRECOMMIT_OUTPUT" | grep -A5 -B5 "vscode-devcontainer-sync" | grep -q "Failed"; then
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "Check VSCode/devcontainer sync.*Failed"; then
               echo "🔧 VSCode/devcontainer files are out of sync!"
               echo ""
               echo "Update the sync with:"
