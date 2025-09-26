@@ -107,6 +107,7 @@ export {
   getCachedTheme,
   getDefaultTheme,
   getHostSpecifiedTheme,
+  getSystemThemePreference,
   globalStyles,
   hasLightBackgroundColor,
   isPresetTheme,
