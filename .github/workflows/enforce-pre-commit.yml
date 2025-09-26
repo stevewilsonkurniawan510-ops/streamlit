@@ -80,10 +80,18 @@ jobs:
             if echo "$PRECOMMIT_OUTPUT" | grep -q "Check generated agent rules.*Failed"; then
               echo "🔧 Agent rules are out of sync!"
               echo ""
-              echo "Your changes to AGENTS.md files require regenerating cursor rules:"
-              echo "   python scripts/generate_agent_rules.py"
+              echo "Generated agent rules don't match their source AGENTS.md files."
               echo ""
-              echo "Then commit the updated .cursor/rules/ and .github/instructions/ files."
+              echo "If you modified AGENTS.md files:"
+              echo "   python scripts/generate_agent_rules.py"
+              echo "   git add .cursor/rules/ .github/instructions/"
+              echo ""
+              echo "If you modified generated files (.cursor/rules/ or .github/instructions/) directly:"
+              echo "   1. Update the corresponding AGENTS.md files to match your changes"
+              echo "   2. python scripts/generate_agent_rules.py"
+              echo "   3. git add .cursor/rules/ .github/instructions/"
+              echo ""
+              echo "Then commit the changes."
               echo ""
             fi
 
