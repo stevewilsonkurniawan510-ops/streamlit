@@ -112,9 +112,12 @@ function useTableSizer(
     measuredContainerHeight &&
     measuredContainerHeight > 0
   ) {
-    // height="stretch" - use the measured container height
-    initialHeight = Math.max(measuredContainerHeight, minHeight)
+    // height="stretch" - for stretch mode, we want the dataframe to participate
+    // in flexbox layout, so we don't set a fixed height. Instead, we let the
+    // container handle the height through CSS.
+    // We still need to set a reasonable maxHeight for the resizable container.
     maxHeight = Math.max(measuredContainerHeight, maxHeight)
+    // Don't override initialHeight - let it use the default behavior
   } else if (configuredHeight) {
     // User has explicitly configured a height (integer value)
     initialHeight = Math.max(configuredHeight, minHeight)
@@ -183,7 +186,7 @@ function useTableSizer(
     // we configure the table to 100%. Which will cause the data grid to
     // calculate the best size on the content and use that.
     width: initialWidth || "100%",
-    height: initialHeight,
+    height: useStretchHeight ? "100%" : initialHeight,
   })
 
   useLayoutEffect(() => {
@@ -210,9 +213,9 @@ function useTableSizer(
   useLayoutEffect(() => {
     setResizableSize(prev => ({
       ...prev,
-      height: initialHeight,
+      height: useStretchHeight ? "100%" : initialHeight,
     }))
-  }, [initialHeight, numRows, measuredContainerHeight])
+  }, [initialHeight, numRows, measuredContainerHeight, useStretchHeight])
 
   // Change sizing if the fullscreen mode is activated or deactivated:
   useLayoutEffect(() => {
