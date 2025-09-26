@@ -57,77 +57,86 @@ jobs:
       - name: Install prettier
         run: cd frontend && yarn install
       - name: Run pre-commit hooks
-        id: pre-commit
         run: |
-          # Capture output for analysis
+          # Run pre-commit and capture both output and exit code
+          set +e  # Don't exit on error
           PRE_COMMIT_NO_CONCURRENCY=true pre-commit run --show-diff-on-failure --color=always --all-files 2>&1 | tee /tmp/precommit_output.txt
-          # Return the exit code from pre-commit
-          exit ${PIPESTATUS[0]}
-      - name: Analyze pre-commit failure and provide specific instructions
-        if: failure() && steps.pre-commit.outcome == 'failure'
-        run: |
-          echo "❌ Pre-commit hooks failed!"
-          echo ""
+          PRECOMMIT_EXIT_CODE=${PIPESTATUS[0]}
+          set -e  # Re-enable exit on error
 
-          # Read the pre-commit output
-          PRECOMMIT_OUTPUT=$(cat /tmp/precommit_output.txt || echo "")
+          # If pre-commit failed, provide specific instructions based on the output
+          if [ $PRECOMMIT_EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "============================================================================"
+            echo "❌ Pre-commit hooks failed!"
+            echo "============================================================================"
+            echo ""
 
-          # Check for specific hook failures and provide targeted instructions
-          if echo "$PRECOMMIT_OUTPUT" | grep -q "generate-agent-rules"; then
-            echo "🔧 Agent rules are out of sync!"
-            echo ""
-            echo "Your changes to AGENTS.md files require regenerating cursor rules:"
-            echo "   python scripts/generate_agent_rules.py"
-            echo ""
-            echo "Then commit the updated .cursor/rules/ and .github/instructions/ files."
-            echo ""
-          fi
+            # Read the pre-commit output for analysis
+            PRECOMMIT_OUTPUT=$(cat /tmp/precommit_output.txt || echo "")
 
-          if echo "$PRECOMMIT_OUTPUT" | grep -q "ruff\|Ruff"; then
-            echo "🔧 Python code formatting/linting issues detected!"
-            echo ""
-            echo "Fix Python issues with:"
-            echo "   make python-format    # Format Python files"
-            echo "   make python-lint      # Check for remaining issues"
-            echo ""
-          fi
+            # Check for specific hook failures and provide targeted instructions
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "generate-agent-rules"; then
+              echo "🔧 Agent rules are out of sync!"
+              echo ""
+              echo "Your changes to AGENTS.md files require regenerating cursor rules:"
+              echo "   python scripts/generate_agent_rules.py"
+              echo ""
+              echo "Then commit the updated .cursor/rules/ and .github/instructions/ files."
+              echo ""
+            fi
 
-          if echo "$PRECOMMIT_OUTPUT" | grep -q "prettier\|Prettier"; then
-            echo "🔧 Frontend code formatting issues detected!"
-            echo ""
-            echo "Fix frontend formatting with:"
-            echo "   make frontend-format  # Format TypeScript/JavaScript files"
-            echo ""
-          fi
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "ruff\|Ruff"; then
+              echo "🔧 Python code formatting/linting issues detected!"
+              echo ""
+              echo "Fix Python issues with:"
+              echo "   make python-format    # Format Python files"
+              echo "   make python-lint      # Check for remaining issues"
+              echo ""
+            fi
 
-          if echo "$PRECOMMIT_OUTPUT" | grep -q "license\|insert-license"; then
-            echo "🔧 Missing or incorrect license headers!"
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "prettier\|Prettier"; then
+              echo "🔧 Frontend code formatting issues detected!"
+              echo ""
+              echo "Fix frontend formatting with:"
+              echo "   make frontend-format  # Format TypeScript/JavaScript files"
+              echo ""
+            fi
+
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "license\|insert-license"; then
+              echo "🔧 Missing or incorrect license headers!"
+              echo ""
+              echo "License headers will be automatically added when you run:"
+              echo "   pre-commit run --all-files"
+              echo ""
+            fi
+
+            if echo "$PRECOMMIT_OUTPUT" | grep -q "vscode-devcontainer-sync"; then
+              echo "🔧 VSCode/devcontainer files are out of sync!"
+              echo ""
+              echo "Update the sync with:"
+              echo "   python scripts/sync_vscode_devcontainer.py"
+              echo ""
+            fi
+
+            echo "🔧 General fix commands:"
             echo ""
-            echo "License headers will be automatically added when you run:"
+            echo "1. Install pre-commit (if not already installed):"
+            echo "   pip install pre-commit"
+            echo "   pre-commit install"
+            echo ""
+            echo "2. Run the autofix command to fix most issues automatically:"
+            echo "   make autofix"
+            echo ""
+            echo "3. Run pre-commit locally to check your changes:"
             echo "   pre-commit run --all-files"
             echo ""
-          fi
-
-          if echo "$PRECOMMIT_OUTPUT" | grep -q "vscode-devcontainer-sync"; then
-            echo "🔧 VSCode/devcontainer files are out of sync!"
+            echo "4. Commit your changes and push again."
             echo ""
-            echo "Update the sync with:"
-            echo "   python scripts/sync_vscode_devcontainer.py"
+            echo "For more details, see: https://github.com/streamlit/streamlit/wiki/Contributing"
             echo ""
-          fi
+            echo "============================================================================"
 
-          echo "🔧 General fix commands:"
-          echo ""
-          echo "1. Install pre-commit (if not already installed):"
-          echo "   pip install pre-commit"
-          echo "   pre-commit install"
-          echo ""
-          echo "2. Run the autofix command to fix most issues automatically:"
-          echo "   make autofix"
-          echo ""
-          echo "3. Run pre-commit locally to check your changes:"
-          echo "   pre-commit run --all-files"
-          echo ""
-          echo "4. Commit your changes and push again."
-          echo ""
-          echo "For more details, see: https://github.com/streamlit/streamlit/wiki/Contributing"
+            # Exit with the original pre-commit exit code
+            exit $PRECOMMIT_EXIT_CODE
+          fi
