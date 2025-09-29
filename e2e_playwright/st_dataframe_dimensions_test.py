@@ -48,7 +48,7 @@ def test_data_frame_with_different_sizes(app: Page):
     ]
 
     dataframe_elements = app.get_by_test_id("stDataFrame")
-    expect(dataframe_elements).to_have_count(18)
+    expect(dataframe_elements).to_have_count(19)
 
     for i, element in enumerate(dataframe_elements.all()):
         expected_width = expected[i]["width"]
