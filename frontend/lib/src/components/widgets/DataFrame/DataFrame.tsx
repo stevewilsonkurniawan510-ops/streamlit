@@ -162,7 +162,7 @@ function DataFrame({
     height: fullScreenHeight,
   } = useRequiredContext(ElementFullscreenContext)
 
-  const { isInHorizontalLayout } = useRequiredContext(FlexContext)
+  const { isInHorizontalLayout, isInRoot } = useRequiredContext(FlexContext)
 
   const resizableRef = useRef<Resizable>(null)
   const dataEditorRef = useRef<DataEditorRef>(null)
@@ -711,7 +711,8 @@ function DataFrame({
     isFullScreen,
     widthConfig,
     heightConfig,
-    measuredContainerHeight
+    measuredContainerHeight,
+    isInRoot
   )
   // This is used as fallback in case the table is empty to
   // insert cells indicating this state:

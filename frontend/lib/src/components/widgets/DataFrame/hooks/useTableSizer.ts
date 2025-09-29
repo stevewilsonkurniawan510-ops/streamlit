@@ -78,7 +78,8 @@ function useTableSizer(
   isFullScreen?: boolean,
   widthConfig?: streamlit.IWidthConfig | null,
   heightConfig?: streamlit.IHeightConfig | null,
-  measuredContainerHeight?: number
+  measuredContainerHeight?: number,
+  isInRoot?: boolean
 ): AutoSizerReturn {
   const rowHeight = element.rowHeight ?? gridTheme.defaultRowHeight
   // Min height for the resizable table container:
@@ -110,7 +111,8 @@ function useTableSizer(
   if (
     useStretchHeight &&
     measuredContainerHeight &&
-    measuredContainerHeight > 0
+    measuredContainerHeight > 0 &&
+    !isInRoot
   ) {
     // height="stretch" - for stretch mode, we want the dataframe to participate
     // in flexbox layout, so we don't set a fixed height. Instead, we let the
@@ -186,7 +188,7 @@ function useTableSizer(
     // we configure the table to 100%. Which will cause the data grid to
     // calculate the best size on the content and use that.
     width: initialWidth || "100%",
-    height: useStretchHeight ? "100%" : initialHeight,
+    height: useStretchHeight && !isInRoot ? "100%" : initialHeight,
   })
 
   useLayoutEffect(() => {
@@ -213,9 +215,15 @@ function useTableSizer(
   useLayoutEffect(() => {
     setResizableSize(prev => ({
       ...prev,
-      height: useStretchHeight ? "100%" : initialHeight,
+      height: useStretchHeight && !isInRoot ? "100%" : initialHeight,
     }))
-  }, [initialHeight, numRows, measuredContainerHeight, useStretchHeight])
+  }, [
+    initialHeight,
+    numRows,
+    measuredContainerHeight,
+    useStretchHeight,
+    isInRoot,
+  ])
 
   // Change sizing if the fullscreen mode is activated or deactivated:
   useLayoutEffect(() => {

@@ -53,3 +53,5 @@ st.dataframe(short_dataframe, width=400, height=300, key="fixed_dimensions_dataf
 st.write("Dataframe with height='stretch' (in 400px container):")
 with st.container(border=True, key="test_height_stretch", height=400):
     st.dataframe(short_dataframe, height="stretch", key="stretch_height_dataframe")
+
+st.dataframe(short_dataframe, height="stretch", key="stretch_height_dataframe_2")

@@ -44,6 +44,7 @@ def test_data_frame_with_different_sizes(app: Page):
             "width": "704px",
             "height": "368px",
         },
+        {"width": "704px", "height": "139px"},
     ]
 
     dataframe_elements = app.get_by_test_id("stDataFrame")
