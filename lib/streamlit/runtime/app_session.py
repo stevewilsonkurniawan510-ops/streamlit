@@ -757,11 +757,11 @@ class AppSession:
         # Handles [theme.sidebar.light] & [theme.sidebar.dark] sections
         _populate_theme_msg(
             msg.new_session.custom_theme.sidebar.light,
-            f"theme.{config.CustomThemeCategories.SIDEBAR.value}.{config.CustomThemeCategories.LIGHT.value}",
+            f"theme.{config.CustomThemeCategories.SIDEBAR_LIGHT.value}",
         )
         _populate_theme_msg(
             msg.new_session.custom_theme.sidebar.dark,
-            f"theme.{config.CustomThemeCategories.SIDEBAR.value}.{config.CustomThemeCategories.DARK.value}",
+            f"theme.{config.CustomThemeCategories.SIDEBAR_DARK.value}",
         )
 
         # Immutable session data. We send this every time a new session is
