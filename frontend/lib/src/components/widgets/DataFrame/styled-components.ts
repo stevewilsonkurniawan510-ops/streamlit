@@ -18,6 +18,7 @@ import styled from "@emotion/styled"
 
 export interface StyledResizableContainerProps {
   isInHorizontalLayout: boolean
+  minHeight: number
 }
 
 /**
@@ -25,7 +26,7 @@ export interface StyledResizableContainerProps {
  */
 export const StyledResizableContainer =
   styled.div<StyledResizableContainerProps>(
-    ({ theme, isInHorizontalLayout }) => ({
+    ({ theme, isInHorizontalLayout, minHeight }) => ({
       position: "relative",
       display: isInHorizontalLayout ? "flex" : "inline-block",
       height: "100%",
@@ -33,6 +34,7 @@ export const StyledResizableContainer =
       "& .stDataFrameGlideDataEditor": {
         height: "100%",
         minWidth: "100%",
+        minHeight: minHeight,
         borderRadius: theme.radii.default,
       },
 

@@ -54,4 +54,17 @@ st.write("Dataframe with height='stretch' (in 400px container):")
 with st.container(border=True, key="test_height_stretch", height=400):
     st.dataframe(short_dataframe, height="stretch", key="stretch_height_dataframe")
 
-st.dataframe(short_dataframe, height="stretch", key="stretch_height_dataframe_2")
+st.write("Dataframe with height='stretch' outside of a container:")
+st.dataframe(
+    short_dataframe, height="stretch", key="stretch_height_dataframe_outside_container"
+)
+
+with st.container(
+    border=True, key="test_height_stretch_outside_container", height="stretch"
+):
+    st.write("Dataframe with height='stretch' inside a stretch height container:")
+    st.dataframe(
+        short_dataframe,
+        height="stretch",
+        key="stretch_height_dataframe_inside_container",
+    )

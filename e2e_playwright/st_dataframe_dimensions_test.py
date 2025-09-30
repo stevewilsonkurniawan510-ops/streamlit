@@ -41,14 +41,15 @@ def test_data_frame_with_different_sizes(app: Page):
         {"width": "229px", "height": "142px"},
         {"width": "400px", "height": "300px"},
         {
-            "width": "704px",
+            "width": "672px",
             "height": "368px",
         },
-        {"width": "704px", "height": "139px"},
+        {"width": "704px", "height": "142px"},
+        {"width": "672px", "height": "72px"},
     ]
 
     dataframe_elements = app.get_by_test_id("stDataFrame")
-    expect(dataframe_elements).to_have_count(19)
+    expect(dataframe_elements).to_have_count(20)
 
     for i, element in enumerate(dataframe_elements.all()):
         expected_width = expected[i]["width"]

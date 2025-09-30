@@ -821,6 +821,7 @@ function DataFrame({
       data-testid="stDataFrame"
       ref={resizableContainerRef}
       isInHorizontalLayout={isInHorizontalLayout}
+      minHeight={minHeight}
       onPointerDown={e => {
         if (resizableContainerRef.current) {
           // Prevent clicks on the scrollbar handle to propagate to the grid:
