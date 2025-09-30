@@ -1852,8 +1852,7 @@ class VegaChartsMixin:
         >>> chart = (
         ...     alt.Chart(df)
         ...     .mark_circle()
-        ...     .encode(x="a", y="b", size="c", color="c",
-                        tooltip=["a", "b", "c"])
+        ...     .encode(x="a", y="b", size="c", color="c", tooltip=["a", "b", "c"])
         ... )
         >>>
         >>> st.altair_chart(chart)
