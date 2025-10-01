@@ -1,0 +1,40 @@
+import streamlit as st
+
+st.set_page_config(page_title="Pesan Sayang ❤️", layout="centered")
+
+st.title("💌 Pesan untukmu")
+
+# Paragraf-paragraf pesan
+paragraf = [
+    """Sayang, aku minta maaf atas perbedaan pendapat yang sempat membuat kita tidak nyaman. 
+Aku tahu mungkin aku terlalu keras dengan pandanganku, padahal yang terpenting adalah bagaimana 
+kita saling memahami dan menjaga hati satu sama lain. Aku tidak ingin hal kecil membuat kita jauh, 
+karena kamu adalah orang yang sangat berarti untukku.""",
+
+    """Aku ingin kamu tahu kalau aku akan selalu berusaha menjadi yang terbaik untukmu. 
+Aku sadar aku masih banyak kekurangan, tapi aku mau belajar dan berubah supaya bisa membuatmu lebih bahagia. 
+Kamu adalah motivasi terbesarku untuk terus berkembang dan menjadi versi terbaik dari diriku sendiri.""",
+
+    """Yang pasti, aku akan selalu ada buatmu. Dalam suka maupun duka, 
+aku ingin jadi orang pertama yang mendukung dan menemanimu. 
+Perbedaan pendapat boleh saja ada, tapi cintaku padamu tetap sama, bahkan semakin kuat. 
+Aku sayang kamu, dan aku tidak ingin kehilangan kita."""
+]
+
+# Slider untuk memilih slide
+slide = st.slider("Geser untuk membaca paragraf:", 
+                  min_value=1, max_value=len(paragraf), 
+                  step=1, value=1)
+
+st.write("---")
+st.markdown(f"### Paragraf {slide}")
+st.write(paragraf[slide-1])
+
+# Navigasi tombol opsional
+col1, col2 = st.columns(2)
+if col1.button("⬅️ Sebelumnya") and slide > 1:
+    st.session_state['slide'] = slide - 1
+if col2.button("➡️ Selanjutnya") and slide < len(paragraf):
+    st.session_state['slide'] = slide + 1
+
+st.caption("Geser slider atau klik tombol untuk berpindah paragraf 💖")
